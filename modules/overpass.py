@@ -11,6 +11,12 @@ class Node(Data):
     lat: float
     lon: float
 
+    def __eq__(self, other: Node) -> bool:
+        return self.lat == other.lat and self.lon == other.lon
+
+    def __hash__(self) -> int:
+        return hash(f"{self.lat}+{self.lon}")
+
 
 class OverpassElement(Data):
     nodes: list[Node]
@@ -23,6 +29,10 @@ class OverpassElement(Data):
             max([node.lat for node in self.nodes]),
             max([node.lon for node in self.nodes]),
         )
+
+
+class Building(OverpassElement):
+    ...
 
 
 class Overpass(ApiInterface):
@@ -54,7 +64,7 @@ class Overpass(ApiInterface):
 
         return nodes
 
-    def getBuildings(self, lat: float, lon: float, radius) -> list[OverpassElement]:
+    def getBuildings(self, lat: float, lon: float, radius) -> list[Building]:
         logging.info(f"Getting buildings around {lat},{lon} with radius {radius}")
         query = f"""
             [out:json];

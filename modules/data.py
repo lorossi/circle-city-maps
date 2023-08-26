@@ -5,11 +5,8 @@ import json
 
 class Data:
     def __init__(self, **kwargs) -> Data:
-        for key, value in kwargs.items():
-            if key in self.__annotations__:
-                setattr(self, key, value)
-            else:
-                raise AttributeError(f"Unknown attribute {key}")
+        for arg in self.__annotations__:
+            setattr(self, arg, kwargs.get(arg, None))
 
         self.__post__init__()
 
