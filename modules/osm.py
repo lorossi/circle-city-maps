@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from modules.nominatim import Nominatim, NominatimCity
-from modules.overpass import Overpass, Building
+from modules.overpass import Overpass, Building, Road
 
 
 class OSM:
@@ -32,3 +32,13 @@ class OSM:
         )
         logging.info(f"Found {len(buildings)} buildings")
         return buildings
+
+    def getRoads(self, city: NominatimCity, radius: int) -> list[Road]:
+        logging.info(f"Getting roads around {city.lat},{city.lon} with radius {radius}")
+        roads = self._overpass.getRoads(
+            city.lat,
+            city.lon,
+            radius,
+        )
+        logging.info(f"Found {len(roads)} roads")
+        return roads

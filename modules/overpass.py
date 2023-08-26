@@ -35,6 +35,10 @@ class Building(OverpassElement):
     ...
 
 
+class Road(OverpassElement):
+    ...
+
+
 class Overpass(ApiInterface):
     def _formatQuery(self, query) -> str:
         query = query.replace("\n", " ")
@@ -64,7 +68,7 @@ class Overpass(ApiInterface):
 
         return nodes
 
-    def getBuildings(self, lat: float, lon: float, radius) -> list[Building]:
+    def getBuildings(self, lat: float, lon: float, radius: float) -> list[Building]:
         logging.info(f"Getting buildings around {lat},{lon} with radius {radius}")
         query = f"""
             [out:json];
@@ -91,3 +95,31 @@ class Overpass(ApiInterface):
 
         logging.info(f"Extracted {len(buildings)} buildings")
         return buildings
+
+    def getRoads(self, lat: float, lon: float, radius: float) -> list[Road]:
+        logging.info(f"Getting roads around {lat},{lon} with radius {radius}")
+        query = f"""
+            [out:json];
+            (
+                way["highway"](around:{radius},{lat},{lon});
+                relation["highway"](around:{radius},{lat},{lon});
+            );
+            out geom;
+        """
+
+        data = self._makeRequest(query=query)
+        logging.info(f"Got {len(data['elements'])} roads")
+
+        roads = []
+        for r in data["elements"]:
+            match r["type"]:
+                case "way":
+                    roads.append(OverpassElement(nodes=self._extractWayNodes(r)))
+                case "relation":
+                    for nodes in self._extractRelationNodes(r):
+                        roads.append(OverpassElement(nodes=nodes))
+                case _:
+                    raise Exception(f"Unknown element type {r['type']}")
+
+        logging.info(f"Extracted {len(roads)} roads")
+        return roads
