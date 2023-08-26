@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 
-import requests
 
 from modules.data import Data
+from modules.api_interface import ApiInterface
 
 
 class Node(Data):
@@ -25,7 +25,7 @@ class OverpassElement(Data):
         )
 
 
-class Overpass:
+class Overpass(ApiInterface):
     def _formatQuery(self, query) -> str:
         query = query.replace("\n", " ")
         while "  " in query:
@@ -38,15 +38,8 @@ class Overpass:
         query = self._formatQuery(kwargs["query"])
         logging.info(f"Formatted query: {query}")
         url = f"https://overpass-api.de/api/interpreter?data={query}"
-        logging.info(f"Requesting {url}")
-        r = requests.get(url)
 
-        if r.status_code != 200:
-            logging.error(f"Request failed with code {r.status_code}")
-            raise Exception(f"Request failed with code {r.status_code}")
-
-        logging.info(f"Request successful with code {r.status_code}")
-        return r.json()
+        return self.makeRequest(url).response_json
 
     def _extractWayNodes(self, way: dict) -> list[Node]:
         return [Node(lat=node["lat"], lon=node["lon"]) for node in way["geometry"]]

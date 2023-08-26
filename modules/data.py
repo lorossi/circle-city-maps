@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+import json
+
 
 class Data:
-    def __init__(
-        self,
-        **kwargs,
-    ) -> Data:
+    def __init__(self, **kwargs) -> Data:
         for key, value in kwargs.items():
             if key in self.__annotations__:
                 setattr(self, key, value)
@@ -13,6 +12,13 @@ class Data:
                 raise AttributeError(f"Unknown attribute {key}")
 
         self.__post__init__()
+
+    def to_json(self) -> str:
+        return json.dumps(self.__dict__)
+
+    @classmethod
+    def from_json(cls, json_string: str) -> Data:
+        return cls(**json.loads(json_string))
 
     def __post__init__(self):
         pass

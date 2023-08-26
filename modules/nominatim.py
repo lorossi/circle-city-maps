@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import logging
 
-import requests
-
+from modules.api_interface import ApiInterface
 from modules.data import Data
 
 
@@ -19,20 +18,14 @@ class NominatimCity(Data):
         self.boundingbox = [float(x) for x in self.boundingbox]
 
 
-class Nominatim:
+class Nominatim(ApiInterface):
     def _makeSearchRequest(self, **kwargs) -> dict:
         logging.info(f"Making Nominatim request with {kwargs}")
         query = "&".join([f"{key}={value}" for key, value in kwargs.items()])
         url = f"https://nominatim.openstreetmap.org/search?{query}"
         logging.info(f"Requesting {url}")
-        r = requests.get(url)
 
-        if r.status_code != 200:
-            logging.error(f"Request failed with code {r.status_code}")
-            raise Exception(f"Request failed with code {r.status_code}")
-
-        logging.info(f"Request successful with code {r.status_code}")
-        return r.json()
+        return self.makeRequest(url).response_json
 
     def findCity(
         self,
