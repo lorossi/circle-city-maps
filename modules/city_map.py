@@ -28,7 +28,7 @@ class MapBuilding(Data):
 class CityMap:
     # TODO: draw rivers and lakes as well
     # TODO: draw parks and forests as well
-    # TODO: add doc strings
+    # TODO: add docstrings
 
     _osm: OSM
     _buildings: list[MapBuilding]
