@@ -18,3 +18,6 @@ out geom;
 );
 out geom;
 ```
+
+- color palette
+  - <https://coolors.co/154084-9d2719-ba6e19-d7b418-e2d183-e8dfb8-ededed-222222>
