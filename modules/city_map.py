@@ -26,9 +26,9 @@ class MapBuilding(Data):
 
 
 class CityMap:
-    # TODO: create antialiased circle around the city
     # TODO: draw rivers and lakes as well
-    # TODO: find a better way to draw the city name
+    # TODO: draw parks and forests as well
+    # TODO: add doc strings
 
     _osm: OSM
     _buildings: list[MapBuilding]
@@ -37,12 +37,9 @@ class CityMap:
     _city_name: str
     _city: NominatimCity
 
-    _background_color: str = "#E8DFB8"
-    _city_background_color: str = "#E8DFB8"
     _fonts_dir: str = "fonts"
-    _circle_color = "#222222"
+    _background_color: str = "#E8DFB8"
     _text_color = "#222222"
-
     _roads_color = "#222222"
     _buildings_palette: list[str] = [
         "#154084",
@@ -189,7 +186,6 @@ class CityMap:
         width: int,
         height: int,
         scl: float,
-        bottom_ratio: float,
         to_composite: list[Image.Image],
     ) -> Image.Image:
         logging.info("Creating image")
@@ -213,21 +209,22 @@ class CityMap:
             to_composite = [ImageOps.mirror(img) for img in to_composite]
 
         # resize the images to the desired size
-        new_w, new_h = int(width * scl), int(height * scl)
-        logging.info(f"Resizing images to {new_w}x{new_h}")
+        new_width, new_height = int(width * scl), int(height * scl)
+        logging.info(f"Resizing images to {new_width}x{new_height}")
         to_composite = [
-            img.resize((new_w, new_h), resample=Image.LANCZOS) for img in to_composite
+            img.resize((new_width, new_height), resample=Image.LANCZOS)
+            for img in to_composite
         ]
 
         # calculate the position of the city image
-        dx = int((width - new_w) / 2)
-        dy = int((height - new_h) * (1 - bottom_ratio))
+        dx = int((width - new_width) / 2)
+        dy = int((height - new_height) / 2)
 
         # create the composite image destination
         composite_img = Image.new(
             "RGBA",
-            (new_w, new_h),
-            color=self._city_background_color,
+            (new_width, new_height),
+            color=self._background_color,
         )
 
         # paste all the images
@@ -262,19 +259,15 @@ class CityMap:
         )
 
         # draw the city name
-        bottom_space = height - dy - composite_img.height
-        font_size = int(bottom_space / 2)
+        font_size = int((height - new_height) / 2)
         font = self._loadFont(size=font_size)
-        anchor = "mm"
+        ex = img_draw.textlength("x", font=font)
         img_draw.text(
-            (
-                width / 2,
-                height - bottom_space / 2,
-            ),
+            (width - ex / 2, height - ex / 2),
             text=self._city_name.upper(),
             fill=self._text_color,
             font=font,
-            anchor=anchor,
+            anchor="rb",
         )
 
         return img
@@ -296,18 +289,37 @@ class CityMap:
         return path
 
     def _loadFont(self, size: int) -> ImageFont:
-        fonts = glob(f"{self._fonts_dir}/*.ttf")
-        if not fonts:
-            raise RuntimeError(f"No .ttf fonts found in {self._fonts_dir}")
+        logging.info(f"Loading font of size {size}")
+        extensions = {"*.ttf", "*.otf"}
+        logging.info(
+            f"Searching for fonts with extensions {extensions} "
+            f"in folder {self._fonts_dir}"
+        )
 
-        return ImageFont.truetype(fonts[0], size=size)
+        fonts = set()
+        for ext in extensions:
+            fonts |= set(glob(f"{self._fonts_dir}/{ext}"))
+
+        logging.info(f"Found {len(fonts)} font(s)")
+
+        if len(fonts) == 0:
+            logging.error("No supported fonts found")
+            raise RuntimeError(f"No supported fonts found in {self._fonts_dir}")
+
+        if len(fonts) > 1:
+            picked_font = fonts.pop()
+            logging.warning(f"Multiple fonts found. Using font {picked_font}")
+        else:
+            picked_font = fonts.pop()
+            logging.info(f"Using font {picked_font}")
+
+        return ImageFont.truetype(picked_font, size=size)
 
     def draw(
         self,
         width: int = 1000,
         height: int = 1000,
         scl: float = 0.9,
-        bottom_ratio: float = 0.5,
         path: str | None = None,
         seed: int | None = None,
     ) -> str:
@@ -329,7 +341,6 @@ class CityMap:
             width=width,
             height=height,
             scl=scl,
-            bottom_ratio=bottom_ratio,
             to_composite=[buildings_img, roads_img],
         )
         # save the image
