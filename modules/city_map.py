@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from modules.nominatim import NominatimCity
 from modules.osm import OSM
-from modules.overpass import Node, Building
+from modules.overpass import Node, Building, Road
 from modules.data import Data
 
 
@@ -26,35 +26,42 @@ class MapBuilding(Data):
 
 
 class CityMap:
-    # TODO: add border as a darker color of the fill for each building
     # TODO: create antialiased circle around the city
-    # TODO: draw roads as well
     # TODO: draw rivers and lakes as well
     # TODO: find a better way to draw the city name
 
     _osm: OSM
-    _buildings: list[Building]
+    _buildings: list[MapBuilding]
+    _roads: list[Road]
     _buildings_bbox: tuple[float, float, float, float]
     _city_name: str
     _city: NominatimCity
 
     _background_color: str = "#E8DFB8"
+    _city_background_color: str = "#E8DFB8"
     _fonts_dir: str = "fonts"
     _circle_color = "#222222"
     _text_color = "#222222"
 
-    _palette: list[str] = [
+    _roads_color = "#222222"
+    _buildings_palette: list[str] = [
         "#154084",
         "#9D2719",
         "#BA6E19",
         "#D7B418",
+    ]
+    _buildings_outline_palette: list[str] = [
+        "#103369",
+        "#7D1F14",
+        "#945814",
+        "#AC9013",
     ]
 
     def __init__(self, city_name: str) -> CityMap:
         self._osm = OSM()
         self._city_name = city_name
 
-        if len(self._palette) < 4:
+        if len(self._buildings_palette) < 4:
             raise AssertionError("Palette must have at least 4 colors")
 
     def _normalizeCoordinate(
@@ -72,15 +79,14 @@ class CityMap:
 
         return int(x * width), int(y * height)
 
-    def load(self, radius: int = 1000) -> int:
+    def load(self, radius: int = 1000) -> tuple[int, int]:
         logging.info(f"Loading city {self._city_name}")
         self._city = self._osm.getCity(self._city_name)
         logging.info(f"Loading buildings around {self._city}, radius {radius}m")
         osm_buildings = self._osm.getBuildings(self._city, radius=radius)
         logging.info(f"Loaded {len(osm_buildings)} buildings")
         self._buildings = [
-            MapBuilding(nodes=building.nodes, neighbors=None, color=None)
-            for building in osm_buildings
+            MapBuilding(nodes=building.nodes) for building in osm_buildings
         ]
         logging.info("Finding buildings bounding box")
         self._buildings_bbox = (
@@ -90,7 +96,11 @@ class CityMap:
             max([building.boundingbox[3] for building in osm_buildings]),
         )
         logging.info(f"Found bounding box {self._buildings_bbox}")
-        return len(self._buildings)
+        logging.info(f"Loading roads around {self._city}, radius {radius}m")
+        self._roads = self._osm.getRoads(self._city, radius=radius)
+        logging.info(f"Loaded {len(self._roads)} roads")
+
+        return len(self._buildings), len(self._roads)
 
     def _pickColors(self, buildings: list[MapBuilding]) -> int:
         logging.info("Picking colors")
@@ -109,7 +119,7 @@ class CityMap:
 
         logging.info("Assigning colors to buildings")
         for building in buildings:
-            available_colors = self._palette.copy()
+            available_colors = self._buildings_palette.copy()
             for n in building.neighbors:
                 if n.color in available_colors:
                     available_colors.remove(n.color)
@@ -119,6 +129,9 @@ class CityMap:
                 raise RuntimeError("No available colors")
 
             building.color = random.choice(available_colors)
+            building.outline_color = self._buildings_outline_palette[
+                self._buildings_palette.index(building.color)
+            ]
 
         logging.info(f"Assigned colors to {len(buildings)} buildings in {elapsed:.2f}s")
 
@@ -128,10 +141,9 @@ class CityMap:
         self,
         width: int,
         height: int,
-        scl: float,
     ) -> Image.Image:
-        city_img = Image.new("RGB", (width, height), color=self._background_color)
-        city_draw = ImageDraw.Draw(city_img)
+        buildings_img = Image.new("RGBA", (width, height))
+        buildings_draw = ImageDraw.Draw(buildings_img)
 
         logging.info("Drawing buildings")
 
@@ -141,73 +153,116 @@ class CityMap:
                 for node in building.nodes
             ]
 
-            city_draw.polygon(
+            buildings_draw.polygon(
                 xy=normalized_nodes,
                 fill=building.color,
-                outline="black",
+                outline=building.outline_color,
             )
 
-        # flip the image to account for the fact that PIL uses (0, 0)
-        # as the top left corner, while OSM uses (0, 0) as the bottom left corner
-        if self._city.lat > 0:
-            logging.info("Flipping image")
-            city_img = ImageOps.flip(city_img)
-        if self._city.lon < 0:
-            logging.info("Mirroring image")
-            city_img = ImageOps.mirror(city_img)
+        return buildings_img
 
-        # resize the image to the desired size
-        new_w, new_h = int(width * scl), int(height * scl)
-        logging.info(f"Resizing image to {new_w}x{new_h}")
-        city_img = city_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    def _drawRoads(
+        self,
+        width: int,
+        height: int,
+    ) -> Image.Image:
+        roads_img = Image.new("RGBA", (width, height))
+        roads_draw = ImageDraw.Draw(roads_img)
 
-        return city_img
+        logging.info("Drawing roads")
+
+        for road in self._roads:
+            normalized_nodes = [
+                self._normalizeCoordinate(node, width, height) for node in road.nodes
+            ]
+
+            roads_draw.line(
+                xy=normalized_nodes,
+                fill=self._roads_color,
+                width=2,
+            )
+
+        return roads_img
 
     def _createImage(
-        self, width: int, height: int, bottom_ratio: float, city_img: Image.Image
+        self,
+        width: int,
+        height: int,
+        scl: float,
+        bottom_ratio: float,
+        to_composite: list[Image.Image],
     ) -> Image.Image:
         logging.info("Creating image")
-        img = Image.new("RGB", (width, height), color=self._background_color)
-        img_draw = ImageDraw.Draw(img)
+
+        # check that all the images have the same size
+        for x in range(1, len(to_composite)):
+            if to_composite[x].width != to_composite[x - 1].width:
+                raise AssertionError("Images must have the same width")
+
+            if to_composite[x].height != to_composite[x - 1].height:
+                raise AssertionError("Images must have the same height")
+
+        # flip the buildings and roads images to account for the fact that PIL uses
+        #  (0, 0) as the top left corner, while OSM uses (0, 0) as
+        # the bottom left corner
+        if self._city.lat > 0:
+            logging.info("Flipping images")
+            to_composite = [ImageOps.flip(img) for img in to_composite]
+        if self._city.lon < 0:
+            logging.info("Mirroring images")
+            to_composite = [ImageOps.mirror(img) for img in to_composite]
+
+        # resize the images to the desired size
+        new_w, new_h = int(width * scl), int(height * scl)
+        logging.info(f"Resizing images to {new_w}x{new_h}")
+        to_composite = [
+            img.resize((new_w, new_h), resample=Image.LANCZOS) for img in to_composite
+        ]
 
         # calculate the position of the city image
-        dx = int((width - city_img.width) / 2)
-        dy = int((height - city_img.height) * (1 - bottom_ratio))
+        dx = int((width - new_w) / 2)
+        dy = int((height - new_h) * (1 - bottom_ratio))
 
+        # create the composite image destination
+        composite_img = Image.new(
+            "RGBA",
+            (new_w, new_h),
+            color=self._city_background_color,
+        )
+
+        # paste all the images
+        for img in to_composite:
+            composite_img = Image.alpha_composite(composite_img, img)
+
+        # create the output image
+        img = Image.new("RGBA", (width, height), color=self._background_color)
+        img_draw = ImageDraw.Draw(img)
         # create a mask for the city image
-        mask = Image.new("L", (city_img.width, city_img.height), color=0)
+        mask = Image.new(
+            "L",
+            (composite_img.width, composite_img.height),
+            color=0,
+        )
         mask_draw = ImageDraw.Draw(mask)
         mask_draw.ellipse(
             (
                 0,
                 0,
-                city_img.width,
-                city_img.height,
+                composite_img.width,
+                composite_img.height,
             ),
             fill=255,
         )
 
-        # paste the city image into the final image
+        # paste the city image
         img.paste(
-            im=city_img,
+            composite_img,
             box=(dx, dy),
             mask=mask,
         )
 
-        # draw a circle around the city
-        img_draw.ellipse(
-            (
-                dx,
-                dy,
-                dx + city_img.width,
-                dy + city_img.height,
-            ),
-            outline=self._circle_color,
-            width=2,
-        )
-
         # draw the city name
-        bottom_space = height - dy - city_img.height
+        bottom_space = height - dy - composite_img.height
         font_size = int(bottom_space / 2)
         font = self._loadFont(size=font_size)
         anchor = "mm"
@@ -251,8 +306,8 @@ class CityMap:
         self,
         width: int = 1000,
         height: int = 1000,
-        scl: float = 0.7,
-        bottom_ratio: float = 0.8,
+        scl: float = 0.9,
+        bottom_ratio: float = 0.5,
         path: str | None = None,
         seed: int | None = None,
     ) -> str:
@@ -266,8 +321,16 @@ class CityMap:
         # pick the colors for the buildings
         self._pickColors(self._buildings)
         # draw the buildings
-        city_img = self._drawBuildings(width, height, scl)
+        buildings_img = self._drawBuildings(width, height)
+        # draw the roads
+        roads_img = self._drawRoads(width, height)
         # create the final image
-        final_img = self._createImage(width, height, bottom_ratio, city_img)
+        final_img = self._createImage(
+            width=width,
+            height=height,
+            scl=scl,
+            bottom_ratio=bottom_ratio,
+            to_composite=[buildings_img, roads_img],
+        )
         # save the image
         path = self._saveImage(final_img, path)
