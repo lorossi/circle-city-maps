@@ -3,6 +3,8 @@
     "boundingbox",
     "Colors",
     "jsonv",
-    "nominatim"
+    "LANCZOS",
+    "nominatim",
+    "textlength"
   ]
 }
