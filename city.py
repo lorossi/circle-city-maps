@@ -12,8 +12,8 @@ def main():
         ),
     )
     c = CityMap("Milano")
-    c.load(radius=1000)
-    c.draw()
+    c.load(radius=500)
+    c.draw(path="map.png")
 
 
 if __name__ == "__main__":
