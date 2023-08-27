@@ -5,7 +5,6 @@ import logging
 import os
 import random
 from datetime import datetime
-from glob import glob
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
@@ -13,6 +12,7 @@ from modules.data import Data
 from modules.nominatim import NominatimCity
 from modules.osm import OSM
 from modules.overpass import Building, Node, Road
+from modules.style import Style, StyleFactory
 
 
 class MapBuilding(Data):
@@ -51,23 +51,10 @@ class CityMap:
     _buildings_bbox: tuple[float, float, float, float]
     _city_name: str
     _city: NominatimCity
+    _styleFactory: StyleFactory
+    _style: Style
 
     _fonts_dir: str = "fonts"
-    _background_color: str = "#E8DFB8"
-    _text_color = "#222222"
-    _roads_color = "#222222"
-    _buildings_palette: list[str] = [
-        "#154084",
-        "#9D2719",
-        "#BA6E19",
-        "#D7B418",
-    ]
-    _buildings_outline_palette: list[str] = [
-        "#103369",
-        "#7D1F14",
-        "#945814",
-        "#AC9013",
-    ]
 
     def __init__(self, city_name: str) -> CityMap:
         """Initialise the class.
@@ -79,11 +66,10 @@ class CityMap:
         Returns:
             CityMap
         """
-        self._osm = OSM()
         self._city_name = city_name
 
-        if len(self._buildings_palette) < 4:
-            raise AssertionError("Palette must have at least 4 colors")
+        self._osm = OSM()
+        self._styleFactory = StyleFactory()
 
     def _normalizeCoordinate(
         self,
@@ -176,16 +162,16 @@ class CityMap:
 
         logging.info("Assigning colours to buildings")
         for building in buildings:
-            available_colors = list(range(len(self._buildings_palette)))
+            available_colors_ids = list(range(len(self._style.buildings_fill)))
             for n in building.neighbors:
-                if n.color_id in available_colors:
-                    available_colors.remove(n.color_id)
+                if n.color_id in available_colors_ids:
+                    available_colors_ids.remove(n.color_id)
 
-            if not available_colors:
+            if not available_colors_ids:
                 logging.error("No available colours. Failing.")
                 raise RuntimeError("No available colours")
 
-            building.color_id = random.choice(available_colors)
+            building.color_id = random.choice(available_colors_ids)
             building.outline_color_id = building.color_id
 
         logging.info(f"Assigned colors to {len(buildings)} buildings in {elapsed:.2f}s")
@@ -202,6 +188,7 @@ class CityMap:
         Args:
             width (int): width of the image.
             height (int): height of the image.
+            style (Style): style to use.
 
         Returns:
             Image.Image
@@ -217,8 +204,8 @@ class CityMap:
                 for node in building.nodes
             ]
 
-            fill_color = self._buildings_palette[building.color_id]
-            outline_color = self._buildings_outline_palette[building.outline_color_id]
+            fill_color = self._style.buildings_fill[building.color_id]
+            outline_color = self._style.buildings_outline[building.outline_color_id]
 
             buildings_draw.polygon(
                 xy=normalized_nodes,
@@ -238,6 +225,7 @@ class CityMap:
         Args:
             width (int): width of the image.
             height (int): height of the image.
+            style (Style): style to use.
 
         Returns:
             Image.Image
@@ -254,7 +242,7 @@ class CityMap:
 
             roads_draw.line(
                 xy=normalized_nodes,
-                fill=self._roads_color,
+                fill=self._style.roads_color,
                 width=2,
             )
 
@@ -274,6 +262,7 @@ class CityMap:
             height (int): height of the image.
             scl (float): ratio of the city image to the whole image.
             to_composite (list[Image.Image): images to composite.
+            style (Style): style to use.
 
         Raises:
             AssertionError: an image has a different width than the others.
@@ -318,7 +307,7 @@ class CityMap:
         composite_img = Image.new(
             "RGBA",
             (new_width, new_height),
-            color=self._background_color,
+            color=self._style.background_color,
         )
 
         # paste all the images
@@ -326,7 +315,7 @@ class CityMap:
             composite_img = Image.alpha_composite(composite_img, img)
 
         # create the output image
-        img = Image.new("RGBA", (width, height), color=self._background_color)
+        img = Image.new("RGBA", (width, height), color=self._style.background_color)
         img_draw = ImageDraw.Draw(img)
         # create a mask for the city image
         mask = Image.new(
@@ -354,12 +343,12 @@ class CityMap:
 
         # draw the city name
         font_size = int((height - new_height) / 2)
-        font = self._loadFont(size=font_size)
+        font = self._loadFont(name=self._style.font_family, size=font_size)
         ex = img_draw.textlength("x", font=font)
         img_draw.text(
             (width - ex / 2, height - ex / 2),
             text=self._city_name.upper(),
-            fill=self._text_color,
+            fill=self._style.text_color,
             font=font,
             anchor="rb",
         )
@@ -393,7 +382,7 @@ class CityMap:
         img.save(path)
         return path
 
-    def _loadFont(self, size: int) -> ImageFont:
+    def _loadFont(self, name: str, size: int) -> ImageFont:
         """Load a font from the fonts folder.
 
         Supported fonts are .ttf and .otf.
@@ -402,36 +391,18 @@ class CityMap:
             size (int): size of the font.
 
         Raises:
-            RuntimeError: no supported fonts were found.
+            RuntimeError: no matching supported fonts were found.
 
         Returns:
             ImageFont
         """
-        logging.info(f"Loading font of size {size}")
-        extensions = {"*.ttf", "*.otf"}
-        logging.info(
-            f"Searching for fonts with extensions {extensions} "
-            f"in folder {self._fonts_dir}"
-        )
+        logging.info(f"Loading font {name} of size {size}")
 
-        fonts = set()
-        for ext in extensions:
-            fonts |= set(glob(f"{self._fonts_dir}/{ext}"))
+        path = os.path.join(self._fonts_dir, name)
+        if not os.path.exists(path):
+            raise RuntimeError(f"Font {name} not found")
 
-        logging.info(f"Found {len(fonts)} font(s)")
-
-        if len(fonts) == 0:
-            logging.error("No supported fonts found")
-            raise RuntimeError(f"No supported fonts found in {self._fonts_dir}")
-
-        if len(fonts) > 1:
-            picked_font = fonts.pop()
-            logging.warning(f"Multiple fonts found. Using font {picked_font}")
-        else:
-            picked_font = fonts.pop()
-            logging.info(f"Using font {picked_font}")
-
-        return ImageFont.truetype(picked_font, size=size)
+        return ImageFont.truetype(path, size=size)
 
     def draw(
         self,
@@ -440,6 +411,7 @@ class CityMap:
         scl: float = 0.9,
         path: str | None = None,
         seed: int | None = None,
+        style: str = "Bauhaus",
     ) -> str:
         """Draw the map.
 
@@ -453,23 +425,37 @@ class CityMap:
                 <city_name>-<timestamp>.png. Defaults to None.
             seed (int | None, optional): seed for the random number generator. \
                 Defaults to None (current timestamp in milliseconds).
+            style (str, optional): name of the style to use. Defaults to "Bauhaus".
 
         Returns:
             str: path to the saved image.
         """
         logging.info(f"Drawing map {width}x{height}")
 
+        # initialize the random number generator
         if seed is None:
             seed = int(datetime.now().timestamp() * 1000)
         logging.info(f"Initializing random with seed {seed}")
         random.seed(seed)
 
+        # load a style
+        logging.info(f"Loading style {style}")
+        self._style = self._styleFactory.getStyle(style)
+
         # pick the colours for the buildings
-        self._pickColors(self._buildings)
+        self._pickColors(
+            buildings=self._buildings,
+        )
         # draw the buildings
-        buildings_img = self._drawBuildings(width, height)
+        buildings_img = self._drawBuildings(
+            width=width,
+            height=height,
+        )
         # draw the roads
-        roads_img = self._drawRoads(width, height)
+        roads_img = self._drawRoads(
+            width=width,
+            height=height,
+        )
         # create the final image
         final_img = self._createImage(
             width=width,

@@ -1,0 +1,9 @@
+[[Styles]]
+
+name = "Bauhaus"
+background_color = "#E8DFB8"
+text_color = "#222222"
+roads_color = "#222222"
+buildings_fill = ["#154084", "#9D2719", "#BA6E19", "#D7B418"]
+buildings_outline = ["#103369", "#7D1F14", "#945814", "#AC9013"]
+font_family = "Bauhaus.ttf"
