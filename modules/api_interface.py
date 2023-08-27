@@ -20,7 +20,7 @@ class ApiRequest(Data):
 
     @property
     def response_json(self) -> dict:
-        """Return the response as a JSON object.
+        """Return the json response as a dict.
 
         Returns:
             dict
@@ -69,7 +69,7 @@ class ApiInterface:
         logging.info(f"Making request to {url}")
 
         filename = hashlib.md5(url.encode("utf-8")).hexdigest()
-        cache_file = os.path.join(self._cache_folder, f"{filename}.json")
+        cache_file = os.path.join(self._cache_folder, f"{filename}.toml")
 
         if os.path.exists(cache_file):
             logging.info(f"Using cached response from {cache_file}")

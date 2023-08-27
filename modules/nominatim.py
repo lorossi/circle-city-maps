@@ -33,7 +33,7 @@ class Nominatim(ApiInterface):
         """Make a search request to Nominatim web service.
 
         Returns:
-            dict: JSON response from the web service.
+            dict: TOML response from the web service.
         """
         logging.info(f"Making Nominatim request with {kwargs}")
         query = "&".join([f"{key}={value}" for key, value in kwargs.items()])

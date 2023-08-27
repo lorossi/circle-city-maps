@@ -20,8 +20,8 @@ class MapBuilding(Data):
 
     nodes: list[Node]
     neighbors: list[MapBuilding]
-    color: str
-    outline_color: str
+    color_id: int
+    outline_color_id: int
 
     def borders(self, other: Building) -> bool:
         """Check if the building borders another building.
@@ -43,7 +43,6 @@ class CityMap:
 
     # TODO: draw rivers and lakes as well
     # TODO: draw parks and forests as well
-    # TODO: add docstrings
     # TODO: add support for different map styles (via different palette and background)
 
     _osm: OSM
@@ -177,19 +176,17 @@ class CityMap:
 
         logging.info("Assigning colours to buildings")
         for building in buildings:
-            available_colors = self._buildings_palette.copy()
+            available_colors = list(range(len(self._buildings_palette)))
             for n in building.neighbors:
-                if n.color in available_colors:
-                    available_colors.remove(n.color)
+                if n.color_id in available_colors:
+                    available_colors.remove(n.color_id)
 
             if not available_colors:
                 logging.error("No available colours. Failing.")
                 raise RuntimeError("No available colours")
 
-            building.color = random.choice(available_colors)
-            building.outline_color = self._buildings_outline_palette[
-                self._buildings_palette.index(building.color)
-            ]
+            building.color_id = random.choice(available_colors)
+            building.outline_color_id = building.color_id
 
         logging.info(f"Assigned colors to {len(buildings)} buildings in {elapsed:.2f}s")
 
@@ -220,10 +217,13 @@ class CityMap:
                 for node in building.nodes
             ]
 
+            fill_color = self._buildings_palette[building.color_id]
+            outline_color = self._buildings_outline_palette[building.outline_color_id]
+
             buildings_draw.polygon(
                 xy=normalized_nodes,
-                fill=building.color,
-                outline=building.outline_color,
+                fill=fill_color,
+                outline=outline_color,
             )
 
         return buildings_img
@@ -464,7 +464,7 @@ class CityMap:
         logging.info(f"Initializing random with seed {seed}")
         random.seed(seed)
 
-        # pick the colourrs for the buildings
+        # pick the colours for the buildings
         self._pickColors(self._buildings)
         # draw the buildings
         buildings_img = self._drawBuildings(width, height)

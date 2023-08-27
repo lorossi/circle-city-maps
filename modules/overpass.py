@@ -72,7 +72,7 @@ class Overpass(ApiInterface):
         """Make a request to the Overpass API.
 
         Returns:
-            dict: JSON response from the API.
+            dict: TOML response from the API.
         """
         logging.info(f"Making Overpass request with {kwargs}")
         query = self._formatQuery(kwargs["query"])

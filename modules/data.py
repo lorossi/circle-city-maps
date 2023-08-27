@@ -1,5 +1,5 @@
 """Module for a generic data class, because default dataclasses are not \
-JSON serializable.
+TOML serializable.
 
 Furthermore, I have developed a custom dataclass (also available on PyPI) \
 but I don't want to use it here because I don't need such a complexity.
@@ -7,7 +7,7 @@ but I don't want to use it here because I don't need such a complexity.
 
 from __future__ import annotations
 
-import json
+import toml
 
 
 class Data:
@@ -35,24 +35,24 @@ class Data:
         pass
 
     def to_json(self) -> str:
-        """Return the object as a JSON string.
+        """Return the object as a TOML string.
 
         Returns:
             str
         """
-        return json.dumps(self.__dict__)
+        return toml.dumps(self.__dict__)
 
     @classmethod
     def from_json(cls, json_string: str) -> Data:
-        """Return the object from a JSON string.
+        """Return the object from a TOML string.
 
         Args:
-            json_string (str): JSON string representing the object.
+            json_string (str): TOML string representing the object.
 
         Returns:
             Data
         """
-        return cls(**json.loads(json_string))
+        return cls(**toml.loads(json_string))
 
     def __repr__(self) -> str:
         """Representation of the object."""
