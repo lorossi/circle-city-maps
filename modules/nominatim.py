@@ -57,6 +57,11 @@ class Nominatim(ApiInterface):
             administrative_level=8,
             format="jsonv2",
         )
+
+        if not data:
+            logging.error(f"City {city_name} not found")
+            raise ValueError(f"City {city_name} not found")
+
         # find the most important city
         city = sorted(data, key=lambda x: x["importance"], reverse=True)[0]
 
