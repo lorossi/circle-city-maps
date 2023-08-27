@@ -1,9 +1,11 @@
+"""Main file for the city map generator."""
 import logging
 
 from modules.city_map import CityMap
 
 
 def main():
+    """Script entry point."""
     logging.basicConfig(
         level=logging.INFO,
         format=(
