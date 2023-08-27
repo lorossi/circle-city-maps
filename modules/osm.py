@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from modules.nominatim import Nominatim, NominatimCity
-from modules.overpass import Overpass, Building, Road
+from modules.overpass import Overpass, Building, Road, Park, Water
 
 
 class OSM:
@@ -81,3 +81,47 @@ class OSM:
         )
         logging.info(f"Found {len(roads)} roads")
         return roads
+
+    def getParks(self, city: NominatimCity, radius: int) -> list[Park]:
+        """Get parks in a city.
+
+        Args:
+            city (NominatimCity): city in which to search.
+            radius (int): maximum distance from the city centre.
+
+        Returns:
+            list[Park]
+        """
+        logging.info(
+            f"Getting parks around city {city.display_name}, "
+            f"({city.lat}, {city.lon}) with radius {radius}"
+        )
+        parks = self._overpass.getParks(
+            city.lat,
+            city.lon,
+            radius,
+        )
+        logging.info(f"Found {len(parks)} parks")
+        return parks
+
+    def getWater(self, city: NominatimCity, radius: int) -> list[Water]:
+        """Get water in a city.
+
+        Args:
+            city (NominatimCity): city in which to search.
+            radius (int): maximum distance from the city centre.
+
+        Returns:
+            list[Water]
+        """
+        logging.info(
+            f"Getting water around city {city.display_name}, "
+            f"({city.lat}, {city.lon}) with radius {radius}"
+        )
+        water = self._overpass.getWater(
+            city.lat,
+            city.lon,
+            radius,
+        )
+        logging.info(f"Found {len(water)} water")
+        return water

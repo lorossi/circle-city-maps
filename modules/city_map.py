@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from modules.data import Data
 from modules.nominatim import NominatimCity
 from modules.osm import OSM
-from modules.overpass import Building, Node, Road
+from modules.overpass import Building, Node, Park, Road, Water
 from modules.style import Style, StyleFactory
 
 
@@ -41,13 +41,11 @@ class MapBuilding(Data):
 class CityMap:
     """Class representing a map of a city."""
 
-    # TODO: draw rivers and lakes as well
-    # TODO: draw parks and forests as well
-    # TODO: add support for different map styles (via different palette and background)
-
     _osm: OSM
     _buildings: list[MapBuilding]
     _roads: list[Road]
+    _parks: list[Park]
+    _water: list[Water]
     _buildings_bbox: tuple[float, float, float, float]
     _city_name: str
     _city: NominatimCity
@@ -109,9 +107,11 @@ class CityMap:
         """
         logging.info(f"Loading city {self._city_name}")
         self._city = self._osm.getCity(self._city_name)
+
         logging.info(f"Loading buildings around {self._city}, radius {radius}m")
         osm_buildings = self._osm.getBuildings(self._city, radius=radius)
         logging.info(f"Loaded {len(osm_buildings)} buildings")
+
         self._buildings = [
             MapBuilding(nodes=building.nodes) for building in osm_buildings
         ]
@@ -123,15 +123,29 @@ class CityMap:
             max([building.boundingbox[3] for building in osm_buildings]),
         )
         logging.info(f"Found bounding box {self._buildings_bbox}")
+
         logging.info(f"Loading roads around {self._city}, radius {radius}m")
         self._roads = self._osm.getRoads(self._city, radius=radius)
         logging.info(f"Loaded {len(self._roads)} roads")
 
-        return sum([len(building.nodes) for building in self._buildings]) + sum(
-            [len(road.nodes) for road in self._roads]
-        )
+        logging.info(f"Loading parks around {self._city}, radius {radius}m")
+        self._parks = self._osm.getParks(self._city, radius=radius)
+        logging.info(f"Loaded {len(self._parks)} parks")
 
-    def _pickColors(self, buildings: list[MapBuilding]) -> int:
+        logging.info(f"Loading water around {self._city}, radius {radius}m")
+        self._water = self._osm.getWater(self._city, radius=radius)
+        logging.info(f"Loaded {len(self._water)} water features")
+
+        loaded_nodes = (
+            sum([len(building.nodes) for building in self._buildings])
+            + sum([len(road.nodes) for road in self._roads])
+            + sum([len(park.nodes) for park in self._parks])
+            + sum([len(water.nodes) for water in self._water])
+        )
+        logging.info(f"Loaded {loaded_nodes} nodes")
+        return loaded_nodes
+
+    def _pickBuildingsColors(self, buildings: list[MapBuilding]) -> int:
         """Pick colours for each building.
 
         This ensures that no two buildings with a common border have the same colour.
@@ -150,10 +164,16 @@ class CityMap:
 
         logging.info("Assigning neighbours to each building")
         started = datetime.now()
-        for building in buildings:
+        last_update = 0
+        for x, building in enumerate(buildings):
             building.neighbors = [
                 other for other in buildings if building.borders(other)
             ]
+            percent = x / len(buildings)
+            if percent >= last_update + 0.05:
+                last_update = (percent // 0.05) * 0.05
+                logging.info(f"{percent*100:.2f}%")
+
         elapsed = (datetime.now() - started).total_seconds()
         logging.info(f"Assigned neighbours in {elapsed:.2f}s")
 
@@ -161,6 +181,7 @@ class CityMap:
         buildings.sort(key=lambda b: len(b.neighbors), reverse=True)
 
         logging.info("Assigning colours to buildings")
+        fails = 0
         for building in buildings:
             available_colors_ids = list(range(len(self._style.buildings_fill)))
             for n in building.neighbors:
@@ -168,13 +189,17 @@ class CityMap:
                     available_colors_ids.remove(n.color_id)
 
             if not available_colors_ids:
-                logging.error("No available colours. Failing.")
-                raise RuntimeError("No available colours")
+                logging.warning("No available colours. Leaving building as is.")
+                available_colors_ids = [-1]
+                fails += 1
 
             building.color_id = random.choice(available_colors_ids)
             building.outline_color_id = building.color_id
 
-        logging.info(f"Assigned colors to {len(buildings)} buildings in {elapsed:.2f}s")
+        logging.info(
+            f"Assigned colors to {len(buildings)} buildings in {elapsed:.2f}s. "
+            f"{fails} fails have been encountered."
+        )
 
         return len(buildings)
 
@@ -204,8 +229,15 @@ class CityMap:
                 for node in building.nodes
             ]
 
-            fill_color = self._style.buildings_fill[building.color_id]
-            outline_color = self._style.buildings_outline[building.outline_color_id]
+            if building.color_id == -1:
+                logging.warning(
+                    "Building has no color. filling it with blank.",
+                )
+                fill_color = (0, 0, 0, 0)
+                outline_color = (0, 0, 0, 255)
+            else:
+                fill_color = self._style.buildings_fill[building.color_id]
+                outline_color = self._style.buildings_outline[building.outline_color_id]
 
             buildings_draw.polygon(
                 xy=normalized_nodes,
@@ -214,6 +246,70 @@ class CityMap:
             )
 
         return buildings_img
+
+    def _drawParks(
+        self,
+        width: int,
+        height: int,
+    ) -> Image.Image:
+        """Draw the parks on an image.
+
+        Args:
+            width (int): width of the image.
+            height (int): height of the image.
+
+        Returns:
+            Image.Image: _description_
+        """
+        parks_img = Image.new("RGBA", (width, height))
+        parks_draw = ImageDraw.Draw(parks_img)
+
+        logging.info("Drawing parks")
+
+        for park in self._parks:
+            normalized_nodes = [
+                self._normalizeCoordinate(node, width, height) for node in park.nodes
+            ]
+
+            parks_draw.polygon(
+                xy=normalized_nodes,
+                fill=self._style.parks_color,
+                outline=self._style.parks_color,
+            )
+
+        return parks_img
+
+    def _drawWater(
+        self,
+        width: int,
+        height: int,
+    ) -> Image.Image:
+        """Draw the water on an image.
+
+        Args:
+            width (int): width of the image.
+            height (int): height of the image.
+
+        Returns:
+            Image.Image: _description_
+        """
+        water_img = Image.new("RGBA", (width, height))
+        water_draw = ImageDraw.Draw(water_img)
+
+        logging.info("Drawing water")
+
+        for water in self._water:
+            normalized_nodes = [
+                self._normalizeCoordinate(node, width, height) for node in water.nodes
+            ]
+
+            water_draw.polygon(
+                xy=normalized_nodes,
+                fill=self._style.water_color,
+                outline=self._style.water_color,
+            )
+
+        return water_img
 
     def _drawRoads(
         self,
@@ -412,6 +508,10 @@ class CityMap:
         path: str | None = None,
         seed: int | None = None,
         style: str = "Bauhaus",
+        draw_buildings: bool = True,
+        draw_roads: bool = True,
+        draw_parks: bool = True,
+        draw_water: bool = True,
     ) -> str:
         """Draw the map.
 
@@ -442,26 +542,54 @@ class CityMap:
         logging.info(f"Loading style {style}")
         self._style = self._styleFactory.getStyle(style)
 
-        # pick the colours for the buildings
-        self._pickColors(
-            buildings=self._buildings,
-        )
-        # draw the buildings
-        buildings_img = self._drawBuildings(
-            width=width,
-            height=height,
-        )
+        to_composite = []
+
         # draw the roads
-        roads_img = self._drawRoads(
-            width=width,
-            height=height,
-        )
+        if draw_roads:
+            to_composite.append(
+                self._drawRoads(
+                    width=width,
+                    height=height,
+                )
+            )
+
+        # draw the parks
+        if draw_parks:
+            to_composite.append(
+                self._drawParks(
+                    width=width,
+                    height=height,
+                )
+            )
+
+        # draw the water
+        if draw_water:
+            to_composite.append(
+                self._drawWater(
+                    width=width,
+                    height=height,
+                )
+            )
+
+        # draw the buildings
+        if draw_buildings:
+            # pick the colours for the buildings
+            self._pickBuildingsColors(
+                buildings=self._buildings,
+            )
+            to_composite.append(
+                self._drawBuildings(
+                    width=width,
+                    height=height,
+                )
+            )
+
         # create the final image
         final_img = self._createImage(
             width=width,
             height=height,
             scl=scl,
-            to_composite=[buildings_img, roads_img],
+            to_composite=to_composite,
         )
         # save the image
         path = self._saveImage(final_img, path)

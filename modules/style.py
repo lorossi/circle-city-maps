@@ -9,18 +9,15 @@ from modules.data import Data
 class Style(Data):
     """Style class, representing a style.
 
-    It includes definitions for:
-        - background_color: The background color of the map.
-        - text_color: The color of the text.
-        - roads_color: The color of the roads.
-        - buildings_color: The color of the buildings.
-        - buildings_outline_color: The color of the outline of the buildings.
+    It includes definitions for colors and fonts.
     """
 
     name: str
     background_color: str
     text_color: str
     roads_color: str
+    parks_color: str
+    water_color: str
     buildings_fill: list[str]
     buildings_outline: str
     font_family: str

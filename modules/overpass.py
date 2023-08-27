@@ -19,7 +19,7 @@ class Node(Data):
 
     def __hash__(self) -> int:
         """Hash of the node."""
-        return hash(f"{self.lat}+{self.lon}")
+        return hash((self.lat, self.lon))
 
 
 class OverpassElement(Data):
@@ -50,6 +50,18 @@ class Road(OverpassElement):
     ...
 
 
+class Park(OverpassElement):
+    """Class representing a park returned by Overpass."""
+
+    ...
+
+
+class Water(OverpassElement):
+    """Class representing a water body returned by Overpass."""
+
+    ...
+
+
 class Overpass(ApiInterface):
     """Class representing an interface to the Overpass API."""
 
@@ -66,7 +78,7 @@ class Overpass(ApiInterface):
         while "  " in query:
             query = query.replace("  ", " ")
 
-        return query
+        return query.strip()
 
     def _makeRequest(self, **kwargs: str) -> dict:
         """Make a request to the Overpass API.
@@ -110,6 +122,39 @@ class Overpass(ApiInterface):
 
         return nodes
 
+    def _extractFeatures(
+        self,
+        data: dict,
+        feature: OverpassElement,
+    ) -> list[OverpassElement]:
+        """Extract features from a response returned by Overpass.
+
+        Args:
+            data (dict): Response returned by Overpass.
+            feature (OverpassElement): Feature to extract.
+
+        Returns:
+            list[OverpassElement]
+        """
+        logging.info(f"Extracting {feature.__name__}s")
+        features = []
+        for f in data["elements"]:
+            match f["type"]:
+                case "way":
+                    features.append(feature(nodes=self._extractWayNodes(f)))
+
+                case "relation":
+                    for nodes in self._extractRelationNodes(f):
+                        features.append(feature(nodes=nodes))
+
+                case _:
+                    logging.warning(f"Unknown element type {f['type']}")
+                    raise Exception(f"Unknown element type {f['type']}")
+
+        logging.info(f"Extracted {len(features)} {feature.__name__}s")
+
+        return features
+
     def getBuildings(self, lat: float, lon: float, radius: float) -> list[Building]:
         """Get buildings around a point.
 
@@ -133,20 +178,7 @@ class Overpass(ApiInterface):
 
         data = self._makeRequest(query=query)
         logging.info(f"Got {len(data['elements'])} buildings")
-
-        buildings = []
-        for b in data["elements"]:
-            match b["type"]:
-                case "way":
-                    buildings.append(OverpassElement(nodes=self._extractWayNodes(b)))
-                case "relation":
-                    for nodes in self._extractRelationNodes(b):
-                        buildings.append(OverpassElement(nodes=nodes))
-                case _:
-                    raise Exception(f"Unknown element type {b['type']}")
-
-        logging.info(f"Extracted {len(buildings)} buildings")
-        return buildings
+        return self._extractFeatures(data=data, feature=Building)
 
     def getRoads(self, lat: float, lon: float, radius: float) -> list[Road]:
         """Get roads around a point.
@@ -171,17 +203,54 @@ class Overpass(ApiInterface):
 
         data = self._makeRequest(query=query)
         logging.info(f"Got {len(data['elements'])} roads")
+        return self._extractFeatures(data=data, feature=Road)
 
-        roads = []
-        for r in data["elements"]:
-            match r["type"]:
-                case "way":
-                    roads.append(OverpassElement(nodes=self._extractWayNodes(r)))
-                case "relation":
-                    for nodes in self._extractRelationNodes(r):
-                        roads.append(OverpassElement(nodes=nodes))
-                case _:
-                    raise Exception(f"Unknown element type {r['type']}")
+    def getParks(self, lat: float, lon: float, radius: float) -> list[Park]:
+        """Get parks around a point.
 
-        logging.info(f"Extracted {len(roads)} roads")
-        return roads
+        Args:
+            lat (float): centre latitude
+            lon (float): centre longitude
+            radius (float): maximum distance from the centre
+
+        Returns:
+            list[Park]
+        """
+        logging.info(f"Getting parks around {lat},{lon} with radius {radius}")
+        query = f"""
+            [out:json];
+            (
+                way["leisure"](around:{radius},{lat},{lon});
+                relation["leisure"](around:{radius},{lat},{lon});
+            );
+            out geom;
+        """
+
+        data = self._makeRequest(query=query)
+        logging.info(f"Got {len(data['elements'])} parks")
+        return self._extractFeatures(data=data, feature=Park)
+
+    def getWater(self, lat: float, lon: float, radius: float) -> list[Water]:
+        """Get water bodies around a point.
+
+        Args:
+            lat (float): centre latitude
+            lon (float): centre longitude
+            radius (float): maximum distance from the centre
+
+        Returns:
+            list[Water]
+        """
+        logging.info(f"Getting water bodies around {lat},{lon} with radius {radius}")
+        query = f"""
+            [out:json];
+            (
+                way["natural"](around:{radius},{lat},{lon});
+                relation["natural"](around:{radius},{lat},{lon});
+            );
+            out geom;
+        """
+
+        data = self._makeRequest(query=query)
+        logging.info(f"Got {len(data['elements'])} water bodies")
+        return self._extractFeatures(data=data, feature=Water)
