@@ -1,3 +1,5 @@
+"""Module for Nominatim API interface."""
+
 from __future__ import annotations
 
 import logging
@@ -7,6 +9,8 @@ from modules.data import Data
 
 
 class NominatimCity(Data):
+    """Class representing a city returned by Nominatim."""
+
     place_id: int
     lat: float
     lon: float
@@ -15,11 +19,22 @@ class NominatimCity(Data):
     boundingbox: list[float]
 
     def __post__init__(self):
+        """Post-initialisation method.
+
+        Automatically called after the initialisation of the class.
+        """
         self.boundingbox = [float(x) for x in self.boundingbox]
 
 
 class Nominatim(ApiInterface):
+    """Class representing an interface to the Nominatim API."""
+
     def _makeSearchRequest(self, **kwargs) -> dict:
+        """Make a search request to Nominatim web service.
+
+        Returns:
+            dict: JSON response from the web service.
+        """
         logging.info(f"Making Nominatim request with {kwargs}")
         query = "&".join([f"{key}={value}" for key, value in kwargs.items()])
         url = f"https://nominatim.openstreetmap.org/search?{query}"
@@ -27,15 +42,19 @@ class Nominatim(ApiInterface):
 
         return self.makeRequest(url).response_json
 
-    def findCity(
-        self,
-        city_name: str,
-        administrative_level: int = 8,
-    ) -> NominatimCity:
+    def findCity(self, city_name: str) -> NominatimCity:
+        """Find a city by name.
+
+        Args:
+            city_name (str): name of the city.
+
+        Returns:
+            NominatimCity: _description_
+        """
         logging.info(f"Finding city {city_name}")
         data = self._makeSearchRequest(
             city=city_name,
-            administrative_level=administrative_level,
+            administrative_level=8,
             format="jsonv2",
         )
         # find the most important city

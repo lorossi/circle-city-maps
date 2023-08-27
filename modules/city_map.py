@@ -1,3 +1,4 @@
+"""Module for drawing a map of a city."""
 from __future__ import annotations
 
 import logging
@@ -8,27 +9,42 @@ from glob import glob
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
+from modules.data import Data
 from modules.nominatim import NominatimCity
 from modules.osm import OSM
-from modules.overpass import Node, Building, Road
-from modules.data import Data
+from modules.overpass import Building, Node, Road
 
 
 class MapBuilding(Data):
+    """Class representing a building in the map."""
+
     nodes: list[Node]
     neighbors: list[MapBuilding]
     color: str
     outline_color: str
 
     def borders(self, other: Building) -> bool:
-        # two elements border if they share at least two nodes
+        """Check if the building borders another building.
+
+        Two buildings border if they share at least two nodes. \
+        This might include some false positives, but it's good enough.
+
+        Args:
+            other (Building)
+
+        Returns:
+            bool
+        """
         return len(set(self.nodes) & set(other.nodes)) >= 2
 
 
 class CityMap:
+    """Class representing a map of a city."""
+
     # TODO: draw rivers and lakes as well
     # TODO: draw parks and forests as well
     # TODO: add docstrings
+    # TODO: add support for different map styles (via different palette and background)
 
     _osm: OSM
     _buildings: list[MapBuilding]
@@ -55,6 +71,15 @@ class CityMap:
     ]
 
     def __init__(self, city_name: str) -> CityMap:
+        """Initialise the class.
+
+        Args:
+            city_name (str): name of the city to draw
+                a map of.
+
+        Returns:
+            CityMap
+        """
         self._osm = OSM()
         self._city_name = city_name
 
@@ -67,6 +92,17 @@ class CityMap:
         width: int,
         height: int,
     ) -> tuple[int, int]:
+        """Normalize a coordinate to the image size with respect to \
+            the bounding box of the buildings.
+
+        Args:
+            node (Node): node to normalize.
+            width (int): width of the image.
+            height (int): height of the image.
+
+        Returns:
+            tuple[int, int]: (x, y) coordinates of the normalized node.
+        """
         x = (node.lon - self._buildings_bbox[1]) / (
             self._buildings_bbox[3] - self._buildings_bbox[1]
         )
@@ -76,7 +112,16 @@ class CityMap:
 
         return int(x * width), int(y * height)
 
-    def load(self, radius: int = 1000) -> tuple[int, int]:
+    def load(self, radius: int = 1000) -> int:
+        """Load a city with its features from OSM.
+
+        Args:
+            radius (int, optional): maximum distance of the features from the city \
+                 centre. Defaults to 1000.
+
+        Returns:
+            int: number of nodes loaded.
+        """
         logging.info(f"Loading city {self._city_name}")
         self._city = self._osm.getCity(self._city_name)
         logging.info(f"Loading buildings around {self._city}, radius {radius}m")
@@ -97,10 +142,26 @@ class CityMap:
         self._roads = self._osm.getRoads(self._city, radius=radius)
         logging.info(f"Loaded {len(self._roads)} roads")
 
-        return len(self._buildings), len(self._roads)
+        return sum([len(building.nodes) for building in self._buildings]) + sum(
+            [len(road.nodes) for road in self._roads]
+        )
 
     def _pickColors(self, buildings: list[MapBuilding]) -> int:
-        logging.info("Picking colors")
+        """Pick colours for each building.
+
+        This ensures that no two buildings with a common border have the same colour.
+
+        Args:
+            buildings (list[MapBuilding])
+
+        Raises:
+            RuntimeError: the algorithm failed to find a solution. \
+                This won't happen as long as 4 colours are available.
+
+        Returns:
+            int: number of buildings coloured.
+        """
+        logging.info("Picking colours")
 
         logging.info("Assigning neighbours to each building")
         started = datetime.now()
@@ -114,7 +175,7 @@ class CityMap:
         logging.info("Sorting buildings by number of neighbours")
         buildings.sort(key=lambda b: len(b.neighbors), reverse=True)
 
-        logging.info("Assigning colors to buildings")
+        logging.info("Assigning colours to buildings")
         for building in buildings:
             available_colors = self._buildings_palette.copy()
             for n in building.neighbors:
@@ -122,8 +183,8 @@ class CityMap:
                     available_colors.remove(n.color)
 
             if not available_colors:
-                logging.error("No available colors. Failing.")
-                raise RuntimeError("No available colors")
+                logging.error("No available colours. Failing.")
+                raise RuntimeError("No available colours")
 
             building.color = random.choice(available_colors)
             building.outline_color = self._buildings_outline_palette[
@@ -139,6 +200,15 @@ class CityMap:
         width: int,
         height: int,
     ) -> Image.Image:
+        """Draw the buildings on an image.
+
+        Args:
+            width (int): width of the image.
+            height (int): height of the image.
+
+        Returns:
+            Image.Image
+        """
         buildings_img = Image.new("RGBA", (width, height))
         buildings_draw = ImageDraw.Draw(buildings_img)
 
@@ -163,6 +233,15 @@ class CityMap:
         width: int,
         height: int,
     ) -> Image.Image:
+        """Draw the roads on an image.
+
+        Args:
+            width (int): width of the image.
+            height (int): height of the image.
+
+        Returns:
+            Image.Image
+        """
         roads_img = Image.new("RGBA", (width, height))
         roads_draw = ImageDraw.Draw(roads_img)
 
@@ -188,6 +267,21 @@ class CityMap:
         scl: float,
         to_composite: list[Image.Image],
     ) -> Image.Image:
+        """Create the final image.
+
+        Args:
+            width (int): width of the image.
+            height (int): height of the image.
+            scl (float): ratio of the city image to the whole image.
+            to_composite (list[Image.Image): images to composite.
+
+        Raises:
+            AssertionError: an image has a different width than the others.
+            AssertionError: an image has a different height than the others.
+
+        Returns:
+            Image.Image
+        """
         logging.info("Creating image")
 
         # check that all the images have the same size
@@ -273,6 +367,17 @@ class CityMap:
         return img
 
     def _saveImage(self, img: Image.Image, path: str | None) -> str:
+        """Save an image to a file.
+
+        Args:
+            img (Image.Image): image to save.
+            path (str | None): path to save the image to. If None, the image will be \
+                saved in the same folder as the script, with the name \
+                <city_name>-<timestamp>.png. Defaults to None.
+
+        Returns:
+            str: image path.
+        """
         out_dir = os.path.dirname(path)
         if out_dir and not os.path.exists(out_dir):
             logging.info(f"Creating directory {out_dir}")
@@ -289,6 +394,19 @@ class CityMap:
         return path
 
     def _loadFont(self, size: int) -> ImageFont:
+        """Load a font from the fonts folder.
+
+        Supported fonts are .ttf and .otf.
+
+        Args:
+            size (int): size of the font.
+
+        Raises:
+            RuntimeError: no supported fonts were found.
+
+        Returns:
+            ImageFont
+        """
         logging.info(f"Loading font of size {size}")
         extensions = {"*.ttf", "*.otf"}
         logging.info(
@@ -323,6 +441,22 @@ class CityMap:
         path: str | None = None,
         seed: int | None = None,
     ) -> str:
+        """Draw the map.
+
+        Args:
+            width (int, optional): width of the final image. Defaults to 1000.
+            height (int, optional): height of the final image. Defaults to 1000.
+            scl (float, optional): ratio of the city image to the whole image. \
+                Defaults to 0.9.
+            path (str | None, optional): path to save the image to. If None, the image \
+                will be saved in the same folder as the script, with the name \
+                <city_name>-<timestamp>.png. Defaults to None.
+            seed (int | None, optional): seed for the random number generator. \
+                Defaults to None (current timestamp in milliseconds).
+
+        Returns:
+            str: path to the saved image.
+        """
         logging.info(f"Drawing map {width}x{height}")
 
         if seed is None:
@@ -330,7 +464,7 @@ class CityMap:
         logging.info(f"Initializing random with seed {seed}")
         random.seed(seed)
 
-        # pick the colors for the buildings
+        # pick the colourrs for the buildings
         self._pickColors(self._buildings)
         # draw the buildings
         buildings_img = self._drawBuildings(width, height)

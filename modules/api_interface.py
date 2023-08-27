@@ -1,3 +1,4 @@
+"""Module for interfacing with the API and caching responses."""
 from __future__ import annotations
 
 import hashlib
@@ -11,21 +12,41 @@ from modules.data import Data
 
 
 class ApiRequest(Data):
+    """Class representing a request to the API."""
+
     timestamp: int
     url: str
     response: str
 
     @property
     def response_json(self) -> dict:
+        """Return the response as a JSON object.
+
+        Returns:
+            dict
+        """
         return json.loads(self.response)
 
 
 class ApiError(Exception):
+    """Class representing an error from the API."""
+
     pass
 
 
 class ApiInterface:
+    """Class representing an interface to the API."""
+
     def __init__(self, cache_folder: str = "cache") -> ApiInterface:
+        """Initialise the class.
+
+        Args:
+            cache_folder (str, optional): folder in which the requests will be stored. \
+            Defaults to "cache".
+
+        Returns:
+            ApiInterface
+        """
         self._cache_folder = cache_folder
         logging.info(f"Using cache folder {self._cache_folder}")
         if not os.path.exists(self._cache_folder):
@@ -33,6 +54,18 @@ class ApiInterface:
             logging.info(f"Created cache folder {self._cache_folder}")
 
     def makeRequest(self, url: str) -> ApiRequest:
+        """Make a GET request to an url, caching the response in a file inside the \
+            cache folder.
+
+        Args:
+            url (str): url to make the request to
+
+        Raises:
+            ApiError: if the request fails
+
+        Returns:
+            ApiRequest: the response to the request
+        """
         logging.info(f"Making request to {url}")
 
         filename = hashlib.md5(url.encode("utf-8")).hexdigest()
