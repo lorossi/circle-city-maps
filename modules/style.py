@@ -27,15 +27,15 @@ class Style(Data):
         if len(self.buildings_fill) < 4:
             raise ValueError("buildings_color must have at least 4 elements.")
 
-        # buildings outlines are fill colors shaded by 3
-        self.buildings_outline = [self._shade(c, 3) for c in self.buildings_fill]
+        # buildings outlines are fill colors shaded by 2
+        self.buildings_outline = [self._shade(c, 2) for c in self.buildings_fill]
 
     def _hex_to_rgb(self, color: str) -> tuple[int, int, int]:
         """Convert a hex color to RGB."""
         color = color.lstrip("#")
         return tuple(int(color[i : i + 2], 16) for i in (0, 2, 4))
 
-    def _shade(self, color: str, amount: int = 3) -> str:
+    def _shade(self, color: str, amount: int = 2) -> str:
         r, g, b = self._hex_to_rgb(color)
         return f"#{r//amount:02x}{g//amount:02x}{b//amount:02x}"
 
