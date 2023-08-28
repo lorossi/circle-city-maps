@@ -8,3 +8,59 @@ water_color = "#20868A"
 buildings_fill = ["#154084", "#9D2719", "#BA6E19", "#D7B418"]
 buildings_outline = ["#103369", "#7D1F14", "#945814", "#AC9013"]
 font_family = "Bauhaus.ttf"
+
+[[Styles]]
+name = "Cyberpunk"
+background_color = "#ECF9FD"
+text_color = "#041E25"
+roads_color = "#f72585"
+parks_color = "#5AD651"
+water_color = "#4361EE"
+buildings_fill = ["#F72585", "#7209B7", "#3A0CA3", "#4361EE"]
+buildings_outline = ["#D90866", "#60079C", "#2F0A85", "#1335CD"]
+font_family = "Asher.ttf"
+
+[[Styles]]
+name = "Black and White"
+background_color = "#DFE0DB"
+text_color = "#0A0A0A"
+roads_color = "#0A0A0A"
+parks_color = "#C5C6C1"
+water_color = "#C5C6C1"
+buildings_fill = ["#343A40", "#495057", "#6C757D", "#ADB5BD"]
+buildings_outline = ["#676765", "#9A9B97", "#B9BAB5", "#C4C5BF"]
+font_family = "Hotsnow.ttf"
+
+[[Styles]]
+name = "Retro"
+background_color = "#fffae2"
+text_color = "#21221C"
+roads_color = "#21221C"
+parks_color = "#A7BD6A"
+water_color = "#6AABBD"
+buildings_fill = ["#797D62", "#BCA469", "#FFCB70", "#F0B27A", "#D08C60"]
+buildings_outline = ["#646751", "#B39956", "#FFBC47", "#ED9E5A", "#C77743"]
+font_family = "KitschyRetro.ttf"
+
+[[Styles]]
+name = "Pastel"
+background_color = "#FDF6EC"
+text_color = "#0A0A0A"
+roads_color = "#9381ff"
+parks_color = "#84dcc6"
+water_color = "#72ddf7"
+buildings_fill = ["#FF70A6", "#FF9770", "#FFD670", "#E9FF70"]
+buildings_outline = ["#FF478E", "#FF7847", "#FFCB47", "#E3FF47"]
+font_family = "Pastel.otf"
+
+
+[[Styles]]
+name = "Night"
+background_color = "#1C2958"
+text_color = "#F9F9F9"
+roads_color = "#FF4E4B"
+parks_color = "#FF4E4B"
+water_color = "#70D6FF"
+buildings_fill = ["#3E7CB6", "#7E589D", "#A3589F", "#C757A0"]
+buildings_outline = ["#3E7CB6", "#7E589D", "#A3589F", "#C757A0"]
+font_family = "AstidaScripto.otf"
