@@ -13,11 +13,47 @@ def main():
             "- %(message)s"
         ),
     )
-    c = CityMap("Milano")
-    c.load(radius=500)
 
-    for style in c.styles:
-        c.draw(width=2000, height=2000, style=style)
+    cities = [
+        "Amsterdam",
+        "Andorra la Vella",
+        "Athens",
+        "Berlin",
+        "Bratislava",
+        "Brussels",
+        "Bucharest",
+        "Budapest",
+        "Copenhagen",
+        "Dublin",
+        "Helsinki",
+        "Lisbon",
+        "Ljubljana",
+        "London",
+        "Luxembourg",
+        "Madrid",
+        "Nicosia",
+        "Oslo",
+        "Paris",
+        "Prague",
+        "Riga",
+        "Rome",
+        "Sofia",
+        "Stockholm",
+        "Tallinn",
+        "Vaduz",
+        "Valletta",
+        "Vienna",
+        "Vilnius",
+        "Warsaw",
+        "Zagreb",
+    ]
+
+    for city in cities:
+        logging.info(f"Generating map for {city}")
+        c = CityMap(city)
+        c.load(radius=2000)
+        for style in c.styles:
+            c.draw(width=5000, height=5000, style=style)
 
 
 if __name__ == "__main__":
