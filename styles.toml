@@ -79,3 +79,13 @@ parks_color = "#005f73"
 water_color = "#005f73"
 buildings_fill = ["#27293C", "#292B3F", "#2B2D42", "#5C6378"]
 font_family = "RalewayRegular.ttf"
+
+[[Styles]]
+name = "Mondrian"
+background_color = "#F8F6EE"
+text_color = "#424040"
+roads_color = "#424040"
+parks_color = "#F8F6EE"
+water_color = "#F8F6EE"
+buildings_fill = ["#e12b27", "#f07925", "#fec723", "#0b74b6"]
+font_family = "DeStijlRegular.ttf"
