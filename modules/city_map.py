@@ -19,7 +19,8 @@ class MapBuilding(Data):
     """Class representing a building in the map."""
 
     nodes: list[Node]
-    neighbors: list[MapBuilding]
+    center: tuple[float, float]
+    neighbors: set[MapBuilding]
     color_id: int
     outline_color_id: int
 
@@ -37,11 +38,21 @@ class MapBuilding(Data):
         """
         return len(set(self.nodes) & set(other.nodes)) >= 2
 
+    def __eq__(self, other: MapBuilding) -> bool:
+        """Two buildings are equal if they have the same nodes."""
+        return all([node in other.nodes for node in self.nodes])
+
+    def __hash__(self) -> int:
+        """Hash the building."""
+        return hash(self.center)
+
 
 class CityMap:
     """Class representing a map of a city."""
 
     _osm: OSM
+    _styleFactory: StyleFactory
+
     _buildings: list[MapBuilding]
     _roads: list[Road]
     _parks: list[Park]
@@ -49,7 +60,6 @@ class CityMap:
     _buildings_bbox: tuple[float, float, float, float]
     _city_name: str
     _city: NominatimCity
-    _styleFactory: StyleFactory
     _style: Style
 
     _fonts_dir: str = "fonts"
@@ -96,6 +106,26 @@ class CityMap:
 
         return int(x * width), int(y * height)
 
+    def _assignNeighbours(self) -> float:
+        """Assign neighbours to each building."""
+        started = datetime.now()
+
+        percent = 0
+        increment = 0.05
+
+        for x, building in enumerate(self._buildings):
+            building.neighbors = {
+                other
+                for other in self._buildings
+                if building != other and building.borders(other)
+            }
+            new_percent = x / len(self._buildings)
+            if new_percent >= percent + increment:
+                logging.info(f"{percent*100:.2f}%")
+                percent += increment
+
+        return (datetime.now() - started).total_seconds()
+
     def load(self, radius: int = 1000) -> int:
         """Load a city with its features from OSM.
 
@@ -114,7 +144,8 @@ class CityMap:
         logging.info(f"Loaded {len(osm_buildings)} buildings")
 
         self._buildings = [
-            MapBuilding(nodes=building.nodes) for building in osm_buildings
+            MapBuilding(nodes=building.nodes, center=building.center)
+            for building in osm_buildings
         ]
         logging.info("Finding buildings bounding box")
         self._buildings_bbox = (
@@ -124,6 +155,10 @@ class CityMap:
             max([building.boundingbox[3] for building in osm_buildings]),
         )
         logging.info(f"Found bounding box {self._buildings_bbox}")
+
+        logging.info("Assigning neighbours to buildings")
+        elapsed = self._assignNeighbours()
+        logging.info(f"Assigned neighbours in {elapsed:.2f}s")
 
         logging.info(f"Loading roads around {self._city}, radius {radius}m")
         self._roads = self._osm.getRoads(self._city, radius=radius)
@@ -162,22 +197,6 @@ class CityMap:
             int: number of buildings coloured.
         """
         logging.info("Picking colours")
-
-        logging.info("Assigning neighbours to each building")
-        started = datetime.now()
-        last_update = 0
-        for x, building in enumerate(buildings):
-            building.neighbors = [
-                other for other in buildings if building.borders(other)
-            ]
-            percent = x / len(buildings)
-            if percent >= last_update + 0.05:
-                last_update = (percent // 0.05) * 0.05
-                logging.info(f"{percent*100:.2f}%")
-
-        elapsed = (datetime.now() - started).total_seconds()
-        logging.info(f"Assigned neighbours in {elapsed:.2f}s")
-
         logging.info("Sorting buildings by number of neighbours")
         buildings.sort(key=lambda b: len(b.neighbors), reverse=True)
 
@@ -198,7 +217,7 @@ class CityMap:
             building.outline_color_id = building.color_id
 
         logging.info(
-            f"Assigned colors to {len(buildings)} buildings in {elapsed:.2f}s. "
+            f"Assigned colors to {len(buildings)} buildings. "
             f"{fails} fails have been encountered."
         )
 
