@@ -124,7 +124,7 @@ class CityMap:
 
         return int(x * width), int(y * height)
 
-    def _assignNeighbours(self) -> float:
+    def _assignNeighbors(self) -> float:
         """Assign neighbours to each building."""
         started = datetime.now()
 
@@ -180,7 +180,7 @@ class CityMap:
 
         if not random_fill:
             logging.info("Assigning neighbours to buildings (this might take a while)")
-            elapsed = self._assignNeighbours()
+            elapsed = self._assignNeighbors()
             logging.info(f"Assigned neighbours in {elapsed:.2f}s")
         else:
             logging.debug("Buildings won't be paired; color assignment will be random")
