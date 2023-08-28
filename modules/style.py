@@ -50,7 +50,7 @@ class StyleFactory:
         return {s["name"]: Style(**s) for s in toml_data["Styles"]}
 
     @property
-    def available_styles(self) -> list[str]:
+    def map_styles(self) -> list[str]:
         """List of available styles."""
         return list(s.name for s in self._styles.values())
 
@@ -66,7 +66,7 @@ class StyleFactory:
         Returns:
             Style: The style.
         """
-        if name not in self.available_styles:
+        if name not in self.map_styles:
             raise ValueError(f"Style {name} not available.")
 
         return self._styles[name]
