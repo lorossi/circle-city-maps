@@ -1,4 +1,4 @@
 cache
 venv
 __pycache__
-fonts
+*.log
