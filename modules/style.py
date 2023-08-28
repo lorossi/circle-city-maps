@@ -25,22 +25,36 @@ class Style(Data):
     def __post__init__(self):
         """Post-initialization checks."""
         if len(self.buildings_fill) < 4:
-            raise ValueError("buildings_color must have at least4 elements.")
+            raise ValueError("buildings_color must have at least 4 elements.")
 
-        if len(self.buildings_fill) != len(self.buildings_outline):
-            raise ValueError(
-                "buildings_color and buildings_outline_color must have the same length."
-            )
+        # buildings outlines are fill colors shaded by 3
+        self.buildings_outline = [self._shade(c, 3) for c in self.buildings_fill]
+
+    def _hex_to_rgb(self, color: str) -> tuple[int, int, int]:
+        """Convert a hex color to RGB."""
+        color = color.lstrip("#")
+        return tuple(int(color[i : i + 2], 16) for i in (0, 2, 4))
+
+    def _shade(self, color: str, amount: int = 3) -> str:
+        r, g, b = self._hex_to_rgb(color)
+        return f"#{r//amount:02x}{g//amount:02x}{b//amount:02x}"
 
 
 class StyleFactory:
     """StyleFactory class, used to load styles from a TOML file."""
 
     _styles_file: str = "styles.toml"
+    _styles: list[Style]
 
     def __init__(self) -> StyleFactory:
         """Initialize the StyleFactory."""
         self._styles = self._loadStyles()
+
+        # every palette must have the same number of colors
+        min_colors = min(len(s.buildings_fill) for s in self._styles.values())
+        max_colors = max(len(s.buildings_fill) for s in self._styles.values())
+        if min_colors != max_colors:
+            raise ValueError("All palettes must have the same length.")
 
     def _loadStyles(self) -> dict[str, Style]:
         """Load styles from a TOML file."""
