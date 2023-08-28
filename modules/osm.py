@@ -33,9 +33,9 @@ class OSM:
         Returns:
             NominatimCity
         """
-        logging.info(f"Getting city {city_name}")
+        logging.debug(f"Getting city {city_name}")
         self._city = self._nominatim.findCity(city_name)
-        logging.info(f"Found city {self._city}")
+        logging.debug(f"Found city {self._city}")
         return self._city
 
     def getBuildings(self, city: NominatimCity, radius: int) -> list[Building]:
@@ -48,7 +48,7 @@ class OSM:
         Returns:
             list[Building]
         """
-        logging.info(
+        logging.debug(
             f"Getting buildings around city {city.display_name}, "
             f"({city.lat}, {city.lon}) with radius {radius}"
         )
@@ -57,7 +57,7 @@ class OSM:
             city.lon,
             radius,
         )
-        logging.info(f"Found {len(buildings)} buildings")
+        logging.debug(f"Found {len(buildings)} buildings")
         return buildings
 
     def getRoads(self, city: NominatimCity, radius: int) -> list[Road]:
@@ -70,7 +70,7 @@ class OSM:
         Returns:
             list[Road]
         """
-        logging.info(
+        logging.debug(
             f"Getting roads around city {city.display_name}, "
             f"({city.lat}, {city.lon}) with radius {radius}"
         )
@@ -79,7 +79,7 @@ class OSM:
             city.lon,
             radius,
         )
-        logging.info(f"Found {len(roads)} roads")
+        logging.debug(f"Found {len(roads)} roads")
         return roads
 
     def getParks(self, city: NominatimCity, radius: int) -> list[Park]:
@@ -92,7 +92,7 @@ class OSM:
         Returns:
             list[Park]
         """
-        logging.info(
+        logging.debug(
             f"Getting parks around city {city.display_name}, "
             f"({city.lat}, {city.lon}) with radius {radius}"
         )
@@ -101,7 +101,7 @@ class OSM:
             city.lon,
             radius,
         )
-        logging.info(f"Found {len(parks)} parks")
+        logging.debug(f"Found {len(parks)} parks")
         return parks
 
     def getWater(self, city: NominatimCity, radius: int) -> list[Water]:
@@ -114,7 +114,7 @@ class OSM:
         Returns:
             list[Water]
         """
-        logging.info(
+        logging.debug(
             f"Getting water around city {city.display_name}, "
             f"({city.lat}, {city.lon}) with radius {radius}"
         )
@@ -123,5 +123,5 @@ class OSM:
             city.lon,
             radius,
         )
-        logging.info(f"Found {len(water)} water")
+        logging.debug(f"Found {len(water)} water")
         return water

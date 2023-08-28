@@ -176,14 +176,14 @@ class CityMap:
             max([building.boundingbox[2] for building in osm_buildings]),
             max([building.boundingbox[3] for building in osm_buildings]),
         )
-        logging.info(f"Found bounding box {self._buildings_bbox}")
+        logging.debug(f"Found bounding box {self._buildings_bbox}")
 
         if not random_fill:
             logging.info("Assigning neighbours to buildings (this might take a while)")
             elapsed = self._assignNeighbours()
             logging.info(f"Assigned neighbours in {elapsed:.2f}s")
         else:
-            logging.info("Buildings won't be paired; color assignment will be random")
+            logging.debug("Buildings won't be paired; color assignment will be random")
 
         logging.info(f"Loading roads around {self._city}, radius {radius}m")
         self._roads = self._osm.getRoads(self._city, radius=radius)
@@ -221,17 +221,17 @@ class CityMap:
         Returns:
             int: number of buildings coloured.
         """
-        logging.info("Picking colours")
+        logging.info("Picking colours for buildings")
         if any(building.neighbors is None for building in buildings):
             logging.warning(
                 "Some buildings have no neighbours. Aborting color assignment."
             )
             return 0
 
-        logging.info("Sorting buildings by number of neighbours")
+        logging.debug("Sorting buildings by number of neighbours")
         buildings.sort(key=lambda b: len(b.neighbors), reverse=True)
 
-        logging.info("Assigning colours to buildings")
+        logging.debug("Assigning colours to buildings")
         fails = 0
         for building in buildings:
             available_colors_ids = list(range(len(self._style.buildings_fill)))
@@ -442,7 +442,7 @@ class CityMap:
 
         # resize the images to the desired size
         new_width, new_height = int(width * scl), int(height * scl)
-        logging.info(f"Resizing images to {new_width}x{new_height}")
+        logging.debug(f"Resizing images to {new_width}x{new_height}")
         to_composite = [
             img.resize((new_width, new_height), resample=Image.LANCZOS)
             for img in to_composite
@@ -502,6 +502,8 @@ class CityMap:
             anchor="rb",
         )
 
+        logging.info("Image created")
+
         return img
 
     def _saveImage(self, img: Image.Image, path: str | None, style: str = None) -> str:
@@ -516,6 +518,7 @@ class CityMap:
         Returns:
             str: image path.
         """
+        logging.info("Saving image")
         if path is not None:
             out_dir = os.path.dirname(path)
         else:
@@ -527,10 +530,10 @@ class CityMap:
             path = f"{path}.png"
 
         if not os.path.exists(out_dir):
-            logging.info(f"Creating directory {out_dir}")
+            logging.debug(f"Creating directory {out_dir}")
             os.makedirs(out_dir)
 
-        logging.info(f"Saving image to {path}")
+        logging.debug(f"Saving image to {path}")
         img.save(path)
         return path
 
@@ -548,7 +551,7 @@ class CityMap:
         Returns:
             ImageFont
         """
-        logging.info(f"Loading font {name} of size {size}")
+        logging.debug(f"Loading font {name} of size {size}")
 
         path = os.path.join(self._fonts_dir, name)
         if not os.path.exists(path):
@@ -592,7 +595,7 @@ class CityMap:
         # initialize the random number generator
         if seed is None:
             seed = int(datetime.now().timestamp() * 1000)
-        logging.info(f"Initializing random with seed {seed}")
+        logging.debug(f"Initializing random with seed {seed}")
         random.seed(seed)
 
         # load a style

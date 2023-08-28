@@ -35,10 +35,10 @@ class Nominatim(ApiInterface):
         Returns:
             dict: TOML response from the web service.
         """
-        logging.info(f"Making Nominatim request with {kwargs}")
+        logging.debug(f"Making Nominatim request with {kwargs}")
         query = "&".join([f"{key}={value}" for key, value in kwargs.items()])
         url = f"https://nominatim.openstreetmap.org/search?{query}"
-        logging.info(f"Requesting {url}")
+        logging.debug(f"Requesting {url}")
 
         return self.makeRequest(url).response_json
 
@@ -51,7 +51,7 @@ class Nominatim(ApiInterface):
         Returns:
             NominatimCity: _description_
         """
-        logging.info(f"Finding city {city_name}")
+        logging.debug(f"Finding city {city_name}")
         data = self._makeSearchRequest(
             city=city_name,
             administrative_level=8,
@@ -65,7 +65,7 @@ class Nominatim(ApiInterface):
         # find the most important city
         city = sorted(data, key=lambda x: x["importance"], reverse=True)[0]
 
-        logging.info(f"Found city {city['display_name']}")
+        logging.debug(f"Found city {city['display_name']}")
 
         return NominatimCity(
             place_id=city["place_id"],

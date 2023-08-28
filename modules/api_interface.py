@@ -48,13 +48,13 @@ class ApiInterface:
             ApiInterface
         """
         self._cache_folder = cache_folder
-        logging.info(f"Using cache folder {self._cache_folder}")
+        logging.debug(f"Using cache folder {self._cache_folder}")
         if not os.path.exists(self._cache_folder):
             os.makedirs(self._cache_folder)
-            logging.info(f"Created cache folder {self._cache_folder}")
+            logging.debug(f"Created cache folder {self._cache_folder}")
 
     def _requestUrl(self, url: str, max_retries: int, max_timeout: int) -> str:
-        logging.info(f"Making request to {url}")
+        logging.debug(f"Making request to {url}")
         for i in range(max_retries):
             try:
                 response = requests.get(url, timeout=max_timeout)
@@ -93,21 +93,21 @@ class ApiInterface:
         Returns:
             ApiRequest: the response to the request
         """
-        logging.info(f"Making request to {url}")
+        logging.debug(f"Making request to {url}")
 
         filename = hashlib.md5(url.encode("utf-8")).hexdigest()
         cache_file = os.path.join(self._cache_folder, f"{filename}.json")
 
         if os.path.exists(cache_file):
-            logging.info(f"Using cached response from {cache_file}")
+            logging.debug(f"Using cached response from {cache_file}")
             with open(cache_file, "r") as f:
-                logging.info("Returning response")
+                logging.debug("Returning response")
                 cached_response = ApiRequest.from_json(f.read())
                 if time.time() - cached_response.timestamp < cached_age:
-                    logging.info("Returning cached response")
+                    logging.debug("Returning cached response")
                     return cached_response
                 else:
-                    logging.info("Cached response is too old, making a new request")
+                    logging.debug("Cached response is too old, making a new request")
 
         response = self._requestUrl(url, max_retries, max_timeout)
 
@@ -117,9 +117,9 @@ class ApiInterface:
             response=response,
         )
 
-        logging.info(f"Caching response to {cache_file}")
+        logging.debug(f"Caching response to {cache_file}")
         with open(cache_file, "w") as f:
             f.write(api_request.to_json())
 
-        logging.info("Returning response")
+        logging.debug("Returning response")
         return api_request

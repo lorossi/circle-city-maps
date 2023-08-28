@@ -53,7 +53,9 @@ def main():
         c = CityMap(city)
         c.load(radius=2000)
         for style in c.styles:
+            logging.info(f"Drawing map with style {style}")
             c.draw(width=5000, height=5000, style=style)
+    logging.info("Done!")
 
 
 if __name__ == "__main__":

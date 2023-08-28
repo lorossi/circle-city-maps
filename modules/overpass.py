@@ -92,9 +92,9 @@ class Overpass(ApiInterface):
         Returns:
             dict: TOML response from the API.
         """
-        logging.info(f"Making Overpass request with {kwargs}")
+        logging.debug(f"Making Overpass request with {kwargs}")
         query = self._formatQuery(kwargs["query"])
-        logging.info(f"Formatted query: {query}")
+        logging.debug(f"Formatted query: {query}")
         url = f"https://overpass-api.de/api/interpreter?data={query}"
 
         return self.makeRequest(url).response_json
@@ -134,7 +134,7 @@ class Overpass(ApiInterface):
         Returns:
             list[OverpassElement]
         """
-        logging.info(f"Extracting {feature_instance.__name__}s")
+        logging.debug(f"Extracting {feature_instance.__name__}s")
         features = []
         for f in data["elements"]:
             nodes = self._extractWayNodes(way=f)
@@ -144,7 +144,7 @@ class Overpass(ApiInterface):
 
             features.append(feature_instance(nodes=nodes))
 
-        logging.info(f"Extracted {len(features)} {feature_instance.__name__}s")
+        logging.debug(f"Extracted {len(features)} {feature_instance.__name__}s")
 
         return features
 
@@ -170,7 +170,7 @@ class Overpass(ApiInterface):
         if feature_name is None:
             feature_name = feature.__name__.lower()
 
-        logging.info(
+        logging.debug(
             f"Getting {feature.__name__}s around {lat},{lon} with radius {radius}"
         )
         query_way = f"""
@@ -190,7 +190,7 @@ class Overpass(ApiInterface):
         relation_data = self._makeRequest(query=query_relation)
         way_data["elements"].extend(relation_data["elements"])
 
-        logging.info(f"Got {len(way_data['elements'])} {feature.__name__}s")
+        logging.debug(f"Got {len(way_data['elements'])} {feature.__name__}s")
         return self._extractFeatures(data=way_data, feature_instance=feature)
 
     def getBuildings(self, lat: float, lon: float, radius: float) -> list[Building]:
