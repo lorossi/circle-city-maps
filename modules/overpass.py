@@ -12,29 +12,35 @@ class Node(Data):
 
     lat: float
     lon: float
+    node_id: int
 
     def __eq__(self, other: Node) -> bool:
         """Twp nodes are equal if they have the same latitude and longitude."""
-        return self.lat == other.lat and self.lon == other.lon
+        return self.node_id == other.node_id
 
     def __hash__(self) -> int:
         """Hash of the node."""
-        return hash((self.lat, self.lon))
+        return hash(self.node_id)
 
 
 class OverpassElement(Data):
     """Class representing an element returned by Overpass."""
 
     nodes: list[Node]
+    center: tuple[float, float]
+    boundingbox: tuple[float, float, float, float]
 
-    @property
-    def boundingbox(self) -> tuple[float, float, float, float]:
-        """Bounding box of the element."""
-        return (
-            min([node.lat for node in self.nodes]),
-            min([node.lon for node in self.nodes]),
-            max([node.lat for node in self.nodes]),
-            max([node.lon for node in self.nodes]),
+    def __post__init__(self):
+        """Post-initialisation hook."""
+        self.boundingbox = (
+            min([n.lat for n in self.nodes]),
+            min([n.lon for n in self.nodes]),
+            max([n.lat for n in self.nodes]),
+            max([n.lon for n in self.nodes]),
+        )
+        self.center = (
+            (self.boundingbox[0] + self.boundingbox[2]) / 2,
+            (self.boundingbox[1] + self.boundingbox[3]) / 2,
         )
 
 
@@ -102,30 +108,22 @@ class Overpass(ApiInterface):
         Returns:
             list[Node]
         """
-        return [Node(lat=node["lat"], lon=node["lon"]) for node in way["geometry"]]
+        if "geometry" not in way:
+            logging.warning(f"Way {way['id']} has no geometry")
+            return []
 
-    def _extractRelationNodes(self, relation: dict) -> list[list[Node]]:
-        """Extract the nodes from a relation returned by Overpass.
-
-        Args:
-            relation (dict): Relation returned by Overpass.
-
-        Returns:
-            list[list[Node]]
-        """
         nodes = []
-        for m in relation["members"]:
-            if m["role"] == "inner":
-                continue
-
-            nodes.append(self._extractWayNodes(m))
+        for x, node in enumerate(way["geometry"]):
+            nodes.append(
+                Node(lat=node["lat"], lon=node["lon"], node_id=way["nodes"][x]),
+            )
 
         return nodes
 
     def _extractFeatures(
         self,
         data: dict,
-        feature: OverpassElement,
+        feature_instance: OverpassElement,
     ) -> list[OverpassElement]:
         """Extract features from a response returned by Overpass.
 
@@ -136,22 +134,17 @@ class Overpass(ApiInterface):
         Returns:
             list[OverpassElement]
         """
-        logging.info(f"Extracting {feature.__name__}s")
+        logging.info(f"Extracting {feature_instance.__name__}s")
         features = []
         for f in data["elements"]:
-            match f["type"]:
-                case "way":
-                    features.append(feature(nodes=self._extractWayNodes(f)))
+            nodes = self._extractWayNodes(way=f)
 
-                case "relation":
-                    for nodes in self._extractRelationNodes(f):
-                        features.append(feature(nodes=nodes))
+            if not nodes:
+                continue
 
-                case _:
-                    logging.warning(f"Unknown element type {f['type']}")
-                    raise Exception(f"Unknown element type {f['type']}")
+            features.append(feature_instance(nodes=nodes))
 
-        logging.info(f"Extracted {len(features)} {feature.__name__}s")
+        logging.info(f"Extracted {len(features)} {feature_instance.__name__}s")
 
         return features
 
@@ -167,18 +160,25 @@ class Overpass(ApiInterface):
             list[Building]
         """
         logging.info(f"Getting buildings around {lat},{lon} with radius {radius}")
-        query = f"""
+        query_way = f"""
             [out:json];
+            way["building"](around:{radius},{lat},{lon});
+            out geom;
+        """
+        way_data = self._makeRequest(query=query_way)
+        query_relation = f"""
+            [out:json];
+            relation["building"](around:{radius},{lat},{lon}) -> . relations;
             (
-                way["building"](around:{radius},{lat},{lon});
-                relation["building"](around:{radius},{lat},{lon});
+                way(r.relations);
             );
             out geom;
         """
+        relation_data = self._makeRequest(query=query_relation)
+        way_data["elements"].extend(relation_data["elements"])
 
-        data = self._makeRequest(query=query)
-        logging.info(f"Got {len(data['elements'])} buildings")
-        return self._extractFeatures(data=data, feature=Building)
+        logging.info(f"Got {len(way_data['elements'])} buildings")
+        return self._extractFeatures(data=way_data, feature_instance=Building)
 
     def getRoads(self, lat: float, lon: float, radius: float) -> list[Road]:
         """Get roads around a point.
@@ -203,7 +203,7 @@ class Overpass(ApiInterface):
 
         data = self._makeRequest(query=query)
         logging.info(f"Got {len(data['elements'])} roads")
-        return self._extractFeatures(data=data, feature=Road)
+        return self._extractFeatures(data=data, feature_instance=Road)
 
     def getParks(self, lat: float, lon: float, radius: float) -> list[Park]:
         """Get parks around a point.
@@ -228,7 +228,7 @@ class Overpass(ApiInterface):
 
         data = self._makeRequest(query=query)
         logging.info(f"Got {len(data['elements'])} parks")
-        return self._extractFeatures(data=data, feature=Park)
+        return self._extractFeatures(data=data, feature_instance=Park)
 
     def getWater(self, lat: float, lon: float, radius: float) -> list[Water]:
         """Get water bodies around a point.
@@ -253,4 +253,4 @@ class Overpass(ApiInterface):
 
         data = self._makeRequest(query=query)
         logging.info(f"Got {len(data['elements'])} water bodies")
-        return self._extractFeatures(data=data, feature=Water)
+        return self._extractFeatures(data=data, feature_instance=Water)
