@@ -20,6 +20,7 @@ class MapBuilding(Data):
 
     nodes: list[Node]
     center: tuple[float, float]
+    boundingbox: tuple[float, float, float, float]
     neighbors: set[MapBuilding]
     color_id: int
     outline_color_id: int
@@ -36,7 +37,24 @@ class MapBuilding(Data):
         Returns:
             bool
         """
-        return len(set(self.nodes) & set(other.nodes)) >= 2
+        # if the bounding box does not overlap, the buildings do not border
+        if (
+            self.boundingbox[0] > other.boundingbox[2]
+            or self.boundingbox[2] < other.boundingbox[0]
+            or self.boundingbox[1] > other.boundingbox[3]
+            or self.boundingbox[3] < other.boundingbox[1]
+        ):
+            return False
+
+        shared = 0
+        for node in self.nodes:
+            if node in other.nodes:
+                shared += 1
+
+                if shared >= 2:
+                    return True
+
+        return False
 
     def __eq__(self, other: MapBuilding) -> bool:
         """Two buildings are equal if they have the same nodes."""
@@ -121,12 +139,12 @@ class CityMap:
             }
             new_percent = x / len(self._buildings)
             if new_percent >= percent + increment:
-                logging.info(f"{percent*100:.2f}%")
+                logging.info(f"Progress: {new_percent*100:.2f}%")
                 percent += increment
 
         return (datetime.now() - started).total_seconds()
 
-    def load(self, radius: int = 1000) -> int:
+    def load(self, radius: int = 1000, random_fill: bool = False) -> int:
         """Load a city with its features from OSM.
 
         Args:
@@ -144,7 +162,11 @@ class CityMap:
         logging.info(f"Loaded {len(osm_buildings)} buildings")
 
         self._buildings = [
-            MapBuilding(nodes=building.nodes, center=building.center)
+            MapBuilding(
+                nodes=building.nodes,
+                boundingbox=building.boundingbox,
+                center=building.center,
+            )
             for building in osm_buildings
         ]
         logging.info("Finding buildings bounding box")
@@ -156,9 +178,12 @@ class CityMap:
         )
         logging.info(f"Found bounding box {self._buildings_bbox}")
 
-        logging.info("Assigning neighbours to buildings")
-        elapsed = self._assignNeighbours()
-        logging.info(f"Assigned neighbours in {elapsed:.2f}s")
+        if not random_fill:
+            logging.info("Assigning neighbours to buildings (this might take a while)")
+            elapsed = self._assignNeighbours()
+            logging.info(f"Assigned neighbours in {elapsed:.2f}s")
+        else:
+            logging.info("Buildings won't be paired; color assignment will be random")
 
         logging.info(f"Loading roads around {self._city}, radius {radius}m")
         self._roads = self._osm.getRoads(self._city, radius=radius)
@@ -197,6 +222,12 @@ class CityMap:
             int: number of buildings coloured.
         """
         logging.info("Picking colours")
+        if any(building.neighbors is None for building in buildings):
+            logging.warning(
+                "Some buildings have no neighbours. Aborting color assignment."
+            )
+            return 0
+
         logging.info("Sorting buildings by number of neighbours")
         buildings.sort(key=lambda b: len(b.neighbors), reverse=True)
 
@@ -210,11 +241,11 @@ class CityMap:
 
             if not available_colors_ids:
                 logging.warning("No available colours. Leaving building as is.")
-                available_colors_ids = [-1]
+                available_colors_ids = None
                 fails += 1
-
-            building.color_id = random.choice(available_colors_ids)
-            building.outline_color_id = building.color_id
+            else:
+                building.color_id = random.choice(available_colors_ids)
+                building.outline_color_id = building.color_id
 
         logging.info(
             f"Assigned colors to {len(buildings)} buildings. "
@@ -249,12 +280,14 @@ class CityMap:
                 for node in building.nodes
             ]
 
-            if building.color_id == -1:
-                logging.warning(
-                    "Building has no color. filling it with blank.",
+            if building.color_id is None:
+                logging.warning("Building has no color. filling it with random color")
+                random_id = random.randint(
+                    0,
+                    len(self._style.buildings_fill) - 1,
                 )
-                fill_color = (0, 0, 0, 0)
-                outline_color = (0, 0, 0, 255)
+                fill_color = self._style.buildings_fill[random_id]
+                outline_color = self._style.buildings_outline[random_id]
             else:
                 fill_color = self._style.buildings_fill[building.color_id]
                 outline_color = self._style.buildings_outline[building.outline_color_id]
@@ -462,7 +495,7 @@ class CityMap:
         font = self._loadFont(name=self._style.font_family, size=font_size)
         ex = img_draw.textlength("x", font=font)
         img_draw.text(
-            (width - ex / 2, height - ex / 2),
+            (width - ex, height - ex),
             text=self._city_name.upper(),
             fill=self._style.text_color,
             font=font,
@@ -519,6 +552,7 @@ class CityMap:
 
         path = os.path.join(self._fonts_dir, name)
         if not os.path.exists(path):
+            logging.error(f"Font {name} not found")
             raise RuntimeError(f"Font {name} not found")
 
         return ImageFont.truetype(path, size=size)
