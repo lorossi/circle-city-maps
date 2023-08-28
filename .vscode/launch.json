@@ -19,6 +19,18 @@
       "program": "${workspaceFolder}/city.py",
       "console": "integratedTerminal",
       "justMyCode": true,
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--debug"
+      ]
+    },
+    {
+      "name": "Python: compose.py",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/compose.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
       "cwd": "${workspaceFolder}"
     }
   ]
