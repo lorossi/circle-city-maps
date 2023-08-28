@@ -66,7 +66,7 @@ class StyleFactory:
     @property
     def map_styles(self) -> list[str]:
         """List of available styles."""
-        return list(s.name for s in self._styles.values())
+        return sorted(list(s.name for s in self._styles.values()))
 
     def getStyle(self, name: str) -> Style:
         """Get a style by name.
