@@ -46,15 +46,15 @@ class MapBuilding(Data):
         ):
             return False
 
-        shared = 0
-        for node in self.nodes:
-            if node in other.nodes:
-                shared += 1
-
-                if shared >= 2:
-                    return True
-
-        return False
+        # if the buildings share at least two nodes, they border
+        shared_nodes = 0
+        this_nodes = {node.node_id for node in self.nodes}
+        other_nodes = {node.node_id for node in other.nodes}
+        for node in this_nodes:
+            if node in other_nodes:
+                shared_nodes += 1
+            if shared_nodes >= 2:
+                return True
 
     def __eq__(self, other: MapBuilding) -> bool:
         """Two buildings are equal if they have the same nodes."""
@@ -81,7 +81,7 @@ class CityMap:
     _style: Style
 
     _fonts_dir: str = "fonts"
-    _out_dir: str = "out"
+    _out_dir: str = "maps"
 
     def __init__(self, city_name: str) -> CityMap:
         """Initialise the class.
@@ -100,10 +100,10 @@ class CityMap:
 
     def _normalizeCoordinate(
         self,
-        node: Node,
+        nodes: list[Node],
         width: int,
         height: int,
-    ) -> tuple[int, int]:
+    ) -> list[tuple[int, int]]:
         """Normalize a coordinate to the image size with respect to \
             the bounding box of the buildings.
 
@@ -115,32 +115,81 @@ class CityMap:
         Returns:
             tuple[int, int]: (x, y) coordinates of the normalized node.
         """
-        x = (node.lon - self._buildings_bbox[1]) / (
-            self._buildings_bbox[3] - self._buildings_bbox[1]
-        )
-        y = (node.lat - self._buildings_bbox[0]) / (
-            self._buildings_bbox[2] - self._buildings_bbox[0]
-        )
+        normalized_nodes = []
 
-        return int(x * width), int(y * height)
+        for node in nodes:
+            x = (node.lon - self._buildings_bbox[1]) / (
+                self._buildings_bbox[3] - self._buildings_bbox[1]
+            )
+            y = (node.lat - self._buildings_bbox[0]) / (
+                self._buildings_bbox[2] - self._buildings_bbox[0]
+            )
 
-    def _assignNeighbors(self) -> float:
-        """Assign neighbours to each building."""
-        started = datetime.now()
+            if x < 0 or x > 1 or y < 0 or y > 1:
+                logging.debug(
+                    f"Node {node} is outside the bounding box of the buildings, "
+                    "so it will be skipped"
+                )
+                continue
 
+            normalized_nodes.append((int(x * width), int(y * height)))
+
+        return normalized_nodes
+
+    def _assignNeighbors(self, radius: float, max_dist: float = 50) -> float:
         percent = 0
-        increment = 0.05
+        increment = 0.1
 
+        # approximate max_dist in degrees by the average of the bounding box sides
+        # (this is not accurate, but it's good enough)
+        d_lat = (
+            (self._buildings_bbox[2] - self._buildings_bbox[0])
+            / (2 * radius)
+            * max_dist
+        )
+        d_lon = (
+            (self._buildings_bbox[3] - self._buildings_bbox[1])
+            / (2 * radius)
+            * max_dist
+        )
+
+        logging.info(
+            "Max distance between buildings: "
+            f"{d_lat*1000:.2f}*10^-3 deg (lat), {d_lon*1000:.2f}*10^-3 deg (lon), "
+            f"or approximately {max_dist}m"
+        )
+
+        started = datetime.now()
+        buildings_checked = 0
         for x, building in enumerate(self._buildings):
-            building.neighbors = {
+            others = [
                 other
                 for other in self._buildings
-                if building != other and building.borders(other)
-            }
+                if (
+                    abs(building.center[0] - other.center[0]) < d_lat
+                    and abs(building.center[1] - other.center[1]) < d_lon
+                )
+                and building != other
+            ]
+            buildings_checked += len(others)
+
+            building.neighbors = {other for other in others if building.borders(other)}
             new_percent = x / len(self._buildings)
             if new_percent >= percent + increment:
-                logging.info(f"Progress: {new_percent*100:.2f}%")
+                elapsed = (datetime.now() - started).total_seconds()
+                remaining = elapsed * (1 - new_percent) / new_percent
+                total = elapsed + remaining
+                logging.info(
+                    f"Progress: {new_percent*100:.2f}%. "
+                    f"Remaining: {remaining:.2f}s, Total: {total:.2f}s"
+                )
                 percent += increment
+
+        logging.info(
+            f"Checked {buildings_checked} buildings "
+            f"averaging {buildings_checked/len(self._buildings):.2f} neighbours "
+            f"each in {(datetime.now() - started).total_seconds():.2f}s"
+        )
 
         return (datetime.now() - started).total_seconds()
 
@@ -180,7 +229,7 @@ class CityMap:
 
         if not random_fill:
             logging.info("Assigning neighbours to buildings (this might take a while)")
-            elapsed = self._assignNeighbors()
+            elapsed = self._assignNeighbors(radius=radius)
             logging.info(f"Assigned neighbours in {elapsed:.2f}s")
         else:
             logging.debug("Buildings won't be paired; color assignment will be random")
@@ -223,7 +272,7 @@ class CityMap:
         """
         logging.info("Picking colours for buildings")
         if any(building.neighbors is None for building in buildings):
-            logging.warning(
+            logging.debug(
                 "Some buildings have no neighbours. Aborting color assignment."
             )
             return 0
@@ -240,7 +289,7 @@ class CityMap:
                     available_colors_ids.remove(n.color_id)
 
             if not available_colors_ids:
-                logging.warning("No available colours. Leaving building as is.")
+                logging.debug("No available colours. Leaving building as is.")
                 available_colors_ids = None
                 fails += 1
             else:
@@ -275,13 +324,15 @@ class CityMap:
         logging.info("Drawing buildings")
 
         for building in self._buildings:
-            normalized_nodes = [
-                self._normalizeCoordinate(node, width, height)
-                for node in building.nodes
-            ]
+            normalized_nodes = self._normalizeCoordinate(building.nodes, width, height)
+
+            if len(normalized_nodes) < 3:
+                logging.debug(
+                    f"Building {building} has less than 3 nodes. Skipping it."
+                )
 
             if building.color_id is None:
-                logging.warning("Building has no color. filling it with random color")
+                logging.debug("Building has no color. filling it with random color")
                 random_id = random.randint(
                     0,
                     len(self._style.buildings_fill) - 1,
@@ -320,9 +371,11 @@ class CityMap:
         logging.info("Drawing parks")
 
         for park in self._parks:
-            normalized_nodes = [
-                self._normalizeCoordinate(node, width, height) for node in park.nodes
-            ]
+            normalized_nodes = self._normalizeCoordinate(park.nodes, width, height)
+
+            if len(normalized_nodes) < 3:
+                logging.debug(f"Park {park} has less than 3 nodes. Skipping it.")
+                continue
 
             parks_draw.polygon(
                 xy=normalized_nodes,
@@ -352,9 +405,11 @@ class CityMap:
         logging.info("Drawing water")
 
         for water in self._water:
-            normalized_nodes = [
-                self._normalizeCoordinate(node, width, height) for node in water.nodes
-            ]
+            normalized_nodes = self._normalizeCoordinate(water.nodes, width, height)
+
+            if len(normalized_nodes) < 3:
+                logging.debug(f"Water {water} has less than 3 nodes. Skipping it.")
+                continue
 
             water_draw.polygon(
                 xy=normalized_nodes,
@@ -385,9 +440,7 @@ class CityMap:
         logging.info("Drawing roads")
 
         for road in self._roads:
-            normalized_nodes = [
-                self._normalizeCoordinate(node, width, height) for node in road.nodes
-            ]
+            normalized_nodes = self._normalizeCoordinate(road.nodes, width, height)
 
             roads_draw.line(
                 xy=normalized_nodes,
@@ -434,10 +487,10 @@ class CityMap:
         #  (0, 0) as the top left corner, while OSM uses (0, 0) as
         # the bottom left corner
         if self._city.lat > 0:
-            logging.info("Flipping images")
+            logging.debug("Flipping composite images")
             to_composite = [ImageOps.flip(img) for img in to_composite]
         if self._city.lon < 0:
-            logging.info("Mirroring images")
+            logging.debug("Mirroring composite images")
             to_composite = [ImageOps.mirror(img) for img in to_composite]
 
         # resize the images to the desired size
@@ -491,7 +544,7 @@ class CityMap:
         )
 
         # draw the city name
-        font_size = int((height - new_height) / 2)
+        font_size = int((height - new_height) * 0.2)
         font = self._loadFont(name=self._style.font_family, size=font_size)
         ex = img_draw.textlength("x", font=font)
         img_draw.text(
@@ -513,7 +566,7 @@ class CityMap:
             img (Image.Image): image to save.
             path (str | None): path to save the image to. If None, the image will be \
                 saved in the same folder as the script, with the name \
-                <city_name>-<style>-<timestamp>.png. Defaults to None.
+                <city_name>-<style>.png. Defaults to None.
 
         Returns:
             str: image path.
@@ -523,8 +576,7 @@ class CityMap:
             out_dir = os.path.dirname(path)
         else:
             out_dir = self._out_dir
-            timestamp = int(datetime.now().timestamp() * 1000)
-            path = f"{out_dir}/{self._city_name}-{style}-{timestamp}.png"
+            path = f"{out_dir}/{self._city_name}-{style}.png".replace(" ", "_")
 
         if not path.endswith(".png"):
             path = f"{path}.png"
@@ -533,7 +585,7 @@ class CityMap:
             logging.debug(f"Creating directory {out_dir}")
             os.makedirs(out_dir)
 
-        logging.debug(f"Saving image to {path}")
+        logging.info(f"Saving image to {path}")
         img.save(path)
         return path
 
@@ -582,7 +634,7 @@ class CityMap:
                 Defaults to 0.9.
             path (str | None, optional): path to save the image to. If None, the image \
                 will be saved in the same folder as the script, with the name \
-                <city_name>-<style>-<timestamp>.png. Defaults to None.
+                <city_name>-<style>.png. Defaults to None.
             seed (int | None, optional): seed for the random number generator. \
                 Defaults to None (current timestamp in milliseconds).
             style (str, optional): name of the style to use. Defaults to "Bauhaus".

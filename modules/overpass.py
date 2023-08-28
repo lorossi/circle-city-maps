@@ -20,7 +20,7 @@ class Node(Data):
 
     def __hash__(self) -> int:
         """Hash of the node."""
-        return hash(self.node_id)
+        return self.node_id
 
 
 class OverpassElement(Data):
