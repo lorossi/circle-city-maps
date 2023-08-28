@@ -80,11 +80,11 @@ class Overpass(ApiInterface):
         Returns:
             str
         """
-        query = query.replace("\n", " ")
         while "  " in query:
             query = query.replace("  ", " ")
+        query = query.replace("\n", " ").strip()
 
-        return query.strip()
+        return query
 
     def _makeRequest(self, **kwargs: str) -> dict:
         """Make a request to the Overpass API.
@@ -148,6 +148,51 @@ class Overpass(ApiInterface):
 
         return features
 
+    def _queryFeature(
+        self,
+        lat: float,
+        lon: float,
+        radius: float,
+        feature: OverpassElement,
+        feature_name: str = None,
+    ) -> list[OverpassElement]:
+        """Get features around a point.
+
+        Args:
+            lat (float): centre latitude
+            lon (float): centre longitude
+            radius (float): maximum distance from the centre
+            feature (str): feature to query
+
+        Returns:
+            list[OverpassElement]
+        """
+        if feature_name is None:
+            feature_name = feature.__name__.lower()
+
+        logging.info(
+            f"Getting {feature.__name__}s around {lat},{lon} with radius {radius}"
+        )
+        query_way = f"""
+            [out:json];
+            way["{feature_name}"](around:{radius},{lat},{lon});
+            out geom;
+        """
+        way_data = self._makeRequest(query=query_way)
+        query_relation = f"""
+            [out:json];
+            relation["{feature_name}"](around:{radius},{lat},{lon}) -> . relations;
+            (
+                way(r.relations)(around:{radius},{lat},{lon});
+            );
+            out geom;
+        """
+        relation_data = self._makeRequest(query=query_relation)
+        way_data["elements"].extend(relation_data["elements"])
+
+        logging.info(f"Got {len(way_data['elements'])} {feature.__name__}s")
+        return self._extractFeatures(data=way_data, feature_instance=feature)
+
     def getBuildings(self, lat: float, lon: float, radius: float) -> list[Building]:
         """Get buildings around a point.
 
@@ -159,26 +204,12 @@ class Overpass(ApiInterface):
         Returns:
             list[Building]
         """
-        logging.info(f"Getting buildings around {lat},{lon} with radius {radius}")
-        query_way = f"""
-            [out:json];
-            way["building"](around:{radius},{lat},{lon});
-            out geom;
-        """
-        way_data = self._makeRequest(query=query_way)
-        query_relation = f"""
-            [out:json];
-            relation["building"](around:{radius},{lat},{lon}) -> . relations;
-            (
-                way(r.relations);
-            );
-            out geom;
-        """
-        relation_data = self._makeRequest(query=query_relation)
-        way_data["elements"].extend(relation_data["elements"])
-
-        logging.info(f"Got {len(way_data['elements'])} buildings")
-        return self._extractFeatures(data=way_data, feature_instance=Building)
+        return self._queryFeature(
+            lat=lat,
+            lon=lon,
+            radius=radius,
+            feature=Building,
+        )
 
     def getRoads(self, lat: float, lon: float, radius: float) -> list[Road]:
         """Get roads around a point.
@@ -191,19 +222,13 @@ class Overpass(ApiInterface):
         Returns:
             list[Road]
         """
-        logging.info(f"Getting roads around {lat},{lon} with radius {radius}")
-        query = f"""
-            [out:json];
-            (
-                way["highway"](around:{radius},{lat},{lon});
-                relation["highway"](around:{radius},{lat},{lon});
-            );
-            out geom;
-        """
-
-        data = self._makeRequest(query=query)
-        logging.info(f"Got {len(data['elements'])} roads")
-        return self._extractFeatures(data=data, feature_instance=Road)
+        return self._queryFeature(
+            lat=lat,
+            lon=lon,
+            radius=radius,
+            feature=Road,
+            feature_name="highway",
+        )
 
     def getParks(self, lat: float, lon: float, radius: float) -> list[Park]:
         """Get parks around a point.
@@ -216,19 +241,13 @@ class Overpass(ApiInterface):
         Returns:
             list[Park]
         """
-        logging.info(f"Getting parks around {lat},{lon} with radius {radius}")
-        query = f"""
-            [out:json];
-            (
-                way["leisure"](around:{radius},{lat},{lon});
-                relation["leisure"](around:{radius},{lat},{lon});
-            );
-            out geom;
-        """
-
-        data = self._makeRequest(query=query)
-        logging.info(f"Got {len(data['elements'])} parks")
-        return self._extractFeatures(data=data, feature_instance=Park)
+        return self._queryFeature(
+            lat=lat,
+            lon=lon,
+            radius=radius,
+            feature=Park,
+            feature_name="leisure",
+        )
 
     def getWater(self, lat: float, lon: float, radius: float) -> list[Water]:
         """Get water bodies around a point.
@@ -241,16 +260,10 @@ class Overpass(ApiInterface):
         Returns:
             list[Water]
         """
-        logging.info(f"Getting water bodies around {lat},{lon} with radius {radius}")
-        query = f"""
-            [out:json];
-            (
-                way["natural"](around:{radius},{lat},{lon});
-                relation["natural"](around:{radius},{lat},{lon});
-            );
-            out geom;
-        """
-
-        data = self._makeRequest(query=query)
-        logging.info(f"Got {len(data['elements'])} water bodies")
-        return self._extractFeatures(data=data, feature_instance=Water)
+        return self._queryFeature(
+            lat=lat,
+            lon=lon,
+            radius=radius,
+            feature=Water,
+            feature_name="water",
+        )
