@@ -544,11 +544,13 @@ class CityMap:
         )
 
         # draw the city name
-        font_size = int((height - new_height) * 0.2)
+        font_size = int((height - new_height) * 0.4)
         font = self._loadFont(name=self._style.font_family, size=font_size)
         ex = img_draw.textlength("x", font=font)
+        text_x = int(width * 0.9)
+        text_y = int(height - ex)
         img_draw.text(
-            (width - ex, height - ex),
+            (text_x, text_y),
             text=self._city_name.upper(),
             fill=self._style.text_color,
             font=font,
@@ -581,7 +583,7 @@ class CityMap:
         if not path.endswith(".png"):
             path = f"{path}.png"
 
-        if not os.path.exists(out_dir):
+        if out_dir and not os.path.exists(out_dir):
             logging.debug(f"Creating directory {out_dir}")
             os.makedirs(out_dir)
 

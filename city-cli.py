@@ -114,14 +114,14 @@ def main():
     city_map.load(
         radius=args.radius,
         random_fill=args.random_fill,
-        seed=args.seed,
     )
 
     city_map.draw(
         style=args.style,
-        output=args.output,
+        path=args.output,
         width=args.width,
         height=args.height,
+        seed=args.seed,
     )
 
 
