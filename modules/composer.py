@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import logging
-from glob import glob
 import os
+from glob import glob
+
 from PIL import Image
 
 
@@ -43,7 +44,13 @@ class Composer:
 
         return maps
 
-    def compose(self, style: str, cities: list[str], sort_cities: bool = False) -> str:
+    def compose(
+        self,
+        style: str,
+        cities: list[str],
+        scl: float = 0.9,
+        sort_cities: bool = False,
+    ) -> str:
         """Compose a map from a list of cities.
 
         Args:
@@ -77,17 +84,27 @@ class Composer:
 
         maps = [self._maps[style][city] for city in cities]
 
+        background_color = maps[0].getpixel((0, 0))
+        logging.debug(f"Background color: {background_color}")
+
         out_size = max(m.width for m in maps)
 
         logging.debug(f"Output size: {out_size}x{out_size}")
-        out_image = Image.new("RGB", (out_size * cols, out_size * cols))
+        out_image = Image.new(
+            "RGB", (out_size * cols, out_size * cols), color=background_color
+        )
 
         for i, m in enumerate(maps):
             x = i % cols
             y = i // cols
 
+            logging.debug(f"Resizing map {i} to {out_size * scl}x{out_size * scl}")
+            m = m.resize((int(out_size * scl), int(out_size * scl)))
+            dx = (out_size - m.width) // 2
+            dy = (out_size - m.height) // 2
+
             logging.debug(f"Composing map {i} at ({x}, {y})")
-            out_image.paste(m, (x * out_size, y * out_size))
+            out_image.paste(m, (x * out_size + dx, y * out_size + dy))
 
         if not os.path.exists(self._dest_folder):
             os.makedirs(self._dest_folder)
