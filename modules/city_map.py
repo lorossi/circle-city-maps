@@ -53,6 +53,7 @@ class CityMap:
     _style: Style
 
     _fonts_dir: str = "fonts"
+    _out_dir: str = "out"
 
     def __init__(self, city_name: str) -> CityMap:
         """Initialise the class.
@@ -451,28 +452,31 @@ class CityMap:
 
         return img
 
-    def _saveImage(self, img: Image.Image, path: str | None) -> str:
+    def _saveImage(self, img: Image.Image, path: str | None, style: str = None) -> str:
         """Save an image to a file.
 
         Args:
             img (Image.Image): image to save.
             path (str | None): path to save the image to. If None, the image will be \
                 saved in the same folder as the script, with the name \
-                <city_name>-<timestamp>.png. Defaults to None.
+                <city_name>-<style>-<timestamp>.png. Defaults to None.
 
         Returns:
             str: image path.
         """
-        out_dir = os.path.dirname(path)
-        if out_dir and not os.path.exists(out_dir):
+        if path is not None:
+            out_dir = os.path.dirname(path)
+        else:
+            out_dir = self._out_dir
+            timestamp = int(datetime.now().timestamp() * 1000)
+            path = f"{out_dir}/{self._city_name}-{style}-{timestamp}.png"
+
+        if not path.endswith(".png"):
+            path = f"{path}.png"
+
+        if not os.path.exists(out_dir):
             logging.info(f"Creating directory {out_dir}")
             os.makedirs(out_dir)
-
-        if path is None:
-            timestamp = int(datetime.now().timestamp() * 1000)
-            path = f"{out_dir}/{self._city_name}-{timestamp}.png"
-        elif not path.endswith(".png"):
-            path = f"{path}.png"
 
         logging.info(f"Saving image to {path}")
         img.save(path)
@@ -522,7 +526,7 @@ class CityMap:
                 Defaults to 0.9.
             path (str | None, optional): path to save the image to. If None, the image \
                 will be saved in the same folder as the script, with the name \
-                <city_name>-<timestamp>.png. Defaults to None.
+                <city_name>-<style>-<timestamp>.png. Defaults to None.
             seed (int | None, optional): seed for the random number generator. \
                 Defaults to None (current timestamp in milliseconds).
             style (str, optional): name of the style to use. Defaults to "Bauhaus".
@@ -592,4 +596,14 @@ class CityMap:
             to_composite=to_composite,
         )
         # save the image
-        path = self._saveImage(final_img, path)
+        out_path = self._saveImage(final_img, path, style)
+        return out_path
+
+    @property
+    def styles(self) -> list[str]:
+        """Return the available styles.
+
+        Returns:
+            list[str]: list of available styles.
+        """
+        return self._styleFactory.map_styles
