@@ -5,7 +5,7 @@ import hashlib
 import json
 import logging
 import os
-
+import time
 import requests
 
 from modules.data import Data
@@ -53,12 +53,39 @@ class ApiInterface:
             os.makedirs(self._cache_folder)
             logging.info(f"Created cache folder {self._cache_folder}")
 
-    def makeRequest(self, url: str) -> ApiRequest:
+    def _requestUrl(self, url: str, max_retries: int, max_timeout: int) -> str:
+        logging.info(f"Making request to {url}")
+        for i in range(max_retries):
+            try:
+                response = requests.get(url, timeout=max_timeout)
+                if response.status_code != 200:
+                    logging.error(
+                        f"Request failed with status code {response.status_code}"
+                    )
+                return response.text
+            except requests.exceptions.Timeout:
+                logging.warning(f"Request timed out, retrying ({i+1}/{max_retries})")
+                continue
+
+        logging.error(f"Request failed after {max_retries} retries")
+        raise ApiError(f"Request failed after {max_retries} retries")
+
+    def makeRequest(
+        self,
+        url: str,
+        max_retries: int = 3,
+        max_timeout: int = 10,
+        cached_age: int = 3600,
+    ) -> ApiRequest:
         """Make a GET request to an url, caching the response in a file inside the \
             cache folder.
 
         Args:
             url (str): url to make the request to
+            max_retries (int, optional): maximum number of retries. Defaults to 3.
+            max_timeout (int, optional): maximum timeout in seconds. Defaults to 10.
+            cached_age (int, optional): maximum age of the cached response in seconds. \
+                Defaults to 3600.
 
         Raises:
             ApiError: if the request fails
@@ -75,18 +102,19 @@ class ApiInterface:
             logging.info(f"Using cached response from {cache_file}")
             with open(cache_file, "r") as f:
                 logging.info("Returning response")
-                return ApiRequest.from_json(f.read())
+                cached_response = ApiRequest.from_json(f.read())
+                if time.time() - cached_response.timestamp < cached_age:
+                    logging.info("Returning cached response")
+                    return cached_response
+                else:
+                    logging.info("Cached response is too old, making a new request")
 
-        logging.info(f"Making request to {url}")
-        response = requests.get(url)
-        if response.status_code != 200:
-            logging.error(f"Request failed with status code {response.status_code}")
-            raise ApiError(f"Request failed with status code {response.status_code}")
+        response = self._requestUrl(url, max_retries, max_timeout)
 
         api_request = ApiRequest(
-            timestamp=response.headers["Date"],
+            timestamp=time.time(),
             url=url,
-            response=response.text,
+            response=response,
         )
 
         logging.info(f"Caching response to {cache_file}")
