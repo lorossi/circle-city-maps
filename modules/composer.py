@@ -126,4 +126,4 @@ class Composer:
     @property
     def cities(self) -> list[str]:
         """Return a list of cities."""
-        return list(set(city for style in self._maps.values() for city in style.keys()))
+        return sorted(list(self._maps[self.styles[0]].keys()))
