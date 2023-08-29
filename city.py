@@ -1,6 +1,6 @@
 """Main file for the city map generator."""
 import logging
-import os
+import sys
 
 from modules.city_map import CityMap
 
@@ -8,52 +8,43 @@ from modules.city_map import CityMap
 def main(argv: list[str]):
     """Script entry point."""
     debug_mode = "--debug" in argv
-    if debug_mode in argv:
+
+    if debug_mode:
         level = logging.DEBUG
+        format = (
+            "%(asctime)s - %(levelname)s - %(module)s (%(lineno)d, in %(funcName)s) "
+            "- %(message)s"
+        )
     else:
         level = logging.INFO
+        format = "%(asctime)s - %(levelname)s - %(message)s"
 
     logging.basicConfig(
         level=level,
-        format=(
-            "%(asctime)s - %(levelname)s - %(module)s (%(lineno)d, in %(funcName)s) "
-            "- %(message)s"
-        ),
+        format=format,
     )
 
     cities = [
-        "Andorra la Vella",
-        "Athens",
         "Berlin",
-        "Bratislava",
-        "Brussels",
         "Bucharest",
         "Budapest",
-        "Copenhagen",
-        "Den Haag",
-        "Dublin",
-        "Helsinki",
-        "Lisbon",
-        "Ljubljana",
-        "London",
-        "Luxembourg",
+        "Florence",
         "Madrid",
-        "Nicosia",
-        "Oslo",
+        "Milan",
         "Paris",
         "Prague",
-        "Riga",
         "Rome",
-        "Sofia",
-        "Stockholm",
-        "Tallinn",
-        "Vaduz",
-        "Valletta",
+        "Turin",
         "Vienna",
-        "Vilnius",
         "Warsaw",
-        "Zagreb",
     ]
+
+    if debug_mode:
+        width = 1000
+        height = 1000
+    else:
+        width = 5000
+        height = 5000
 
     logging.info("Generating city maps...")
     for city in cities:
@@ -62,11 +53,11 @@ def main(argv: list[str]):
         city_map.load(radius=1000, random_fill=debug_mode)
         for style in city_map.styles:
             logging.info(f"Generating map for {city} in style {style}")
-            path = city_map.draw(width=5000, height=5000, style=style, scl=0.8)
+            path = city_map.draw(width=width, height=height, style=style, scl=0.8)
             logging.info(f"Map for {city} in style {style} saved to {path}")
 
     logging.info("Done!")
 
 
 if __name__ == "__main__":
-    main(os.sys.argv[1:])
+    main(sys.argv)
