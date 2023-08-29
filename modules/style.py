@@ -68,6 +68,11 @@ class StyleFactory:
         """List of available styles."""
         return sorted(list(s.name for s in self._styles.values()))
 
+    @property
+    def palette_length(self) -> int:
+        """Length of the color palette."""
+        return len(self._styles[self.map_styles[0]].buildings_fill)
+
     def getStyle(self, name: str) -> Style:
         """Get a style by name.
 
