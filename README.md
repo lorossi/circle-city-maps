@@ -99,8 +99,8 @@ Fonts used:
 - Asher Punk by Allouse.Studio
 - Astida Scripto by FreshTypeINK
 - Bauhaus by ALLTYPE
-- Beautiful People by Billy Argel Fonts
 - DeStijl by Garrett Boge
+- Hello Mermaid by NJ Studio
 - HotSnow by Alit Design
 - Kitschy Retro by Creative Fabrica
 - Love Nature by Joe Dawson
