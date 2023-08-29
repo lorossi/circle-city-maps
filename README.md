@@ -99,8 +99,8 @@ Fonts used:
 - Asher Punk by Allouse.Studio
 - Astida Scripto by FreshTypeINK
 - Bauhaus by ALLTYPE
+- Celtic Sea by Art Designs by Sue
 - DeStijl by Garrett Boge
-- Hello Mermaid by NJ Studio
 - HotSnow by Alit Design
 - Kitschy Retro by Creative Fabrica
 - Love Nature by Joe Dawson

@@ -116,7 +116,7 @@ roads_color = "#D9B29D"
 parks_color = "#397354"
 water_color = "#546E8F"
 buildings_fill = ["#2B3A67", "#496A81", "#66999B", "#B3AF8F"]
-font_family = "HelloMermaid.otf"
+font_family = "CelticSea.ttf"
 
 [[Styles]]
 name = "Sunset"
