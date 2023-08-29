@@ -5,7 +5,7 @@ import logging
 import os
 from glob import glob
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 
 class Composer:
@@ -44,12 +44,25 @@ class Composer:
 
         return maps
 
+    def _shadeColor(self, source_color: str, shades: int = 4) -> str:
+        """Shade a color."""
+        logging.debug(f"Shading color {source_color}")
+        r, g, b = [
+            int(c, 16)
+            for c in [source_color[1:3], source_color[3:5], source_color[5:7]]
+        ]
+        logging.debug(f"RGB: {r}, {g}, {b}")
+        r, g, b = (int(c / shades) for c in [r, g, b])
+        logging.debug(f"Shaded RGB: {r}, {g}, {b}")
+        return f"#{r:02x}{g:02x}{b:02x}"
+
     def compose(
         self,
         style: str,
         cities: list[str],
         scl: float = 0.9,
         sort_cities: bool = False,
+        frame_width: int = 2,
     ) -> str:
         """Compose a map from a list of cities.
 
@@ -76,6 +89,10 @@ class Composer:
                 f"does not match number of columns ({cols})"
             )
 
+        if frame_width % 2 != 0:
+            logging.error(f"Frame width ({frame_width}) must be even")
+            raise ValueError(f"Frame width ({frame_width}) must be even")
+
         cities = [c.title() for c in cities]
         if sort_cities:
             cities.sort()
@@ -86,6 +103,7 @@ class Composer:
 
         background_color = maps[0].getpixel((0, 0))
         logging.debug(f"Background color: {background_color}")
+        frame_color = self._shadeColor(background_color, shades=2)
 
         out_size = max(m.width for m in maps)
 
@@ -93,6 +111,7 @@ class Composer:
         out_image = Image.new(
             "RGB", (out_size * cols, out_size * cols), color=background_color
         )
+        out_draw = ImageDraw.Draw(out_image)
 
         for i, m in enumerate(maps):
             x = i % cols
@@ -105,6 +124,20 @@ class Composer:
 
             logging.debug(f"Composing map {i} at ({x}, {y})")
             out_image.paste(m, (x * out_size + dx, y * out_size + dy))
+            # draw 2px frame
+            out_draw.rectangle(
+                [
+                    (
+                        x * out_size + dx - frame_width // 2,
+                        y * out_size + dy - frame_width // 2,
+                    ),
+                    (
+                        x * out_size + dx + m.width + frame_width // 2,
+                        y * out_size + dy + m.height + frame_width // 2,
+                    ),
+                ],
+                outline=frame_color,
+            )
 
         if not os.path.exists(self._dest_folder):
             os.makedirs(self._dest_folder)
