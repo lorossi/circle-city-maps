@@ -99,9 +99,15 @@ Fonts used:
 - Asher Punk by Allouse.Studio
 - Astida Scripto by FreshTypeINK
 - Bauhaus by ALLTYPE
+- Beautiful People by Billy Argel Fonts
 - DeStijl by Garrett Boge
 - HotSnow by Alit Design
 - Kitschy Retro by Creative Fabrica
+- Love Nature by Joe Dawson
+- Moon by Jack Harvatt
+- NUSAR by Free Fonts
 - Pastel by Vladimir Creative Fabrica
+- Tropical Asian by Konstantine Studio
 - Raleway by Matt McInerney
+- Roquen by Letterhend Studio
 - Vincent by Macromedia
