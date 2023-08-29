@@ -42,6 +42,14 @@ class Data:
         """
         return json.dumps(self.__dict__)
 
+    def copy(self) -> Data:
+        """Return a copy of the object.
+
+        Returns:
+            Data
+        """
+        return self.__class__(**self.__dict__)
+
     @classmethod
     def from_json(cls, json_string: str) -> Data:
         """Return the object from a json string.
