@@ -98,8 +98,7 @@ def main():
     logging.basicConfig(level=level, format=format)
 
     if args.list_styles:
-        city_map = CityMap()
-        print("\n".join(city_map.styles))
+        print("\n".join(CityMap.getStyles()))
         return
 
     if not args.city:
