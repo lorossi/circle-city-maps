@@ -227,12 +227,15 @@ class CityMap:
         )
         logging.debug(f"Found bounding box {self._buildings_bbox}")
 
-        if not random_fill:
+        if random_fill:
+            logging.debug("Buildings won't be paired; color assignment will be random")
+        else:
             logging.info("Assigning neighbours to buildings (this might take a while)")
             elapsed = self._assignNeighbors(radius=radius)
             logging.info(f"Assigned neighbours in {elapsed:.2f}s")
-        else:
-            logging.debug("Buildings won't be paired; color assignment will be random")
+            logging.info("Assigning colors to buildings (this might take a while)")
+            elapsed = self._pickBuildingsColors()
+            logging.info(f"Assigned colors in {elapsed:.2f}s")
 
         logging.info(f"Loading roads around {self._city}, radius {radius}m")
         self._roads = self._osm.getRoads(self._city, radius=radius)
@@ -255,53 +258,83 @@ class CityMap:
         logging.info(f"Loaded {loaded_nodes} nodes")
         return loaded_nodes
 
-    def _pickBuildingsColors(self, buildings: list[MapBuilding]) -> int:
+    def _assignColors(
+        self,
+        buildings: list[MapBuilding],
+        max_retries: int = 100,
+    ) -> tuple[int, list[MapBuilding]]:
+        best_fails = len(buildings)
+        best_buildings = []
+
+        for x in range(max_retries):
+            fails = 0
+            # reset previous color assignments
+            for building in buildings:
+                building.color_id = None
+                building.outline_color_id = None
+
+            for building in buildings:
+                available_colors_ids = list(range(self._styleFactory.palette_length))
+                for n in building.neighbors:
+                    if n.color_id in available_colors_ids:
+                        available_colors_ids.remove(n.color_id)
+
+                if not available_colors_ids:
+                    available_colors_ids = None
+                    fails += 1
+                else:
+                    building.color_id = random.choice(available_colors_ids)
+                    building.outline_color_id = building.color_id
+
+            if fails < best_fails:
+                logging.debug(f"Found a better solution ({fails} fails)")
+                best_fails = fails
+                best_buildings = [building.copy() for building in buildings]
+
+            if fails == 0:
+                break
+
+            logging.debug(f"Too many fails ({fails}). Retrying... {max_retries-x} left")
+
+        logging.debug(f"Best solution found: {best_fails} fails.")
+        return best_fails, best_buildings
+
+    def _pickBuildingsColors(self) -> int:
         """Pick colours for each building.
 
         This ensures that no two buildings with a common border have the same colour.
-
-        Args:
-            buildings (list[MapBuilding])
 
         Raises:
             RuntimeError: the algorithm failed to find a solution. \
                 This won't happen as long as 4 colours are available.
 
         Returns:
-            int: number of buildings coloured.
+            int: elapsed time in seconds.
         """
         logging.info("Picking colours for buildings")
-        if any(building.neighbors is None for building in buildings):
+        if any(building.neighbors is None for building in self._buildings):
             logging.debug(
                 "Some buildings have no neighbours. Aborting color assignment."
             )
             return 0
 
         logging.debug("Sorting buildings by number of neighbours")
-        buildings.sort(key=lambda b: len(b.neighbors), reverse=True)
+        started = datetime.now()
+        buildings = sorted(
+            self._buildings,
+            key=lambda b: len(b.neighbors),
+            reverse=True,
+        )
 
         logging.debug("Assigning colours to buildings")
-        fails = 0
-        for building in buildings:
-            available_colors_ids = list(range(len(self._style.buildings_fill)))
-            for n in building.neighbors:
-                if n.color_id in available_colors_ids:
-                    available_colors_ids.remove(n.color_id)
 
-            if not available_colors_ids:
-                logging.debug("No available colours. Leaving building as is.")
-                available_colors_ids = None
-                fails += 1
-            else:
-                building.color_id = random.choice(available_colors_ids)
-                building.outline_color_id = building.color_id
+        fails, self._buildings = self._assignColors(self._buildings)
 
         logging.info(
             f"Assigned colors to {len(buildings)} buildings. "
             f"{fails} fails have been encountered."
         )
-
-        return len(buildings)
+        return (datetime.now() - started).total_seconds()
 
     def _drawBuildings(
         self,
@@ -543,18 +576,32 @@ class CityMap:
             mask=mask,
         )
 
-        # draw the city name
-        font_size = int((height - new_height) * 0.4)
+        # scale down the font until it fits nicely in the image
+        # font_size = int((height - new_height) * 0.35)
+        # while True:
+        #     font = self._loadFont(name=self._style.font_family, size=font_size)
+        #     text = self._city_name.upper()
+        #     text_bbox = img_draw.textbbox((0, 0), text, font=font)
+        #     text_height = text_bbox[3] - text_bbox[1]
+
+        #     if text_height <= (height - new_height) * 0.2:
+        #         break
+
+        #     font_size -= 2
+        font_size = int((height - new_height) * 0.3)
         font = self._loadFont(name=self._style.font_family, size=font_size)
-        ex = img_draw.textlength("x", font=font)
-        text_x = int(width * 0.9)
-        text_y = int(height - ex)
+        text = self._city_name.upper()
+        actual_bbox = img_draw.textbbox((0, 0), text, font=font)
+        text_height = actual_bbox[3] - actual_bbox[1]
+
+        text_x = int(width * 0.95)
+        text_y = int(height - text_height / 2)
         img_draw.text(
             (text_x, text_y),
-            text=self._city_name.upper(),
+            text=text,
             fill=self._style.text_color,
             font=font,
-            anchor="rb",
+            anchor="rd",
         )
 
         logging.info("Image created")
@@ -687,10 +734,6 @@ class CityMap:
 
         # draw the buildings
         if draw_buildings:
-            # pick the colours for the buildings
-            self._pickBuildingsColors(
-                buildings=self._buildings,
-            )
             to_composite.append(
                 self._drawBuildings(
                     width=width,
@@ -717,3 +760,12 @@ class CityMap:
             list[str]: list of available styles.
         """
         return self._styleFactory.map_styles
+
+    @staticmethod
+    def getStyles() -> list[str]:
+        """Return the available styles, without having to instantiate the class.
+
+        Returns:
+            list[str]: list of available styles
+        """
+        return CityMap("").styles
