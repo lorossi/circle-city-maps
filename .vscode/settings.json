@@ -20,7 +20,4 @@
     "Stijl",
     "textlength"
   ],
-  "python.linting.flake8Enabled": false,
-  "python.linting.pydocstyleEnabled": true,
-  "python.linting.enabled": true
 }
