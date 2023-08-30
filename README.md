@@ -1,31 +1,82 @@
 # City Maps
 
-Recently I picked up interest again for Pinterest, a social media that I straight up refused to use due to their terrible website and their incredibly bad practice of forcing you to create an account and install an application (if you are on mobile) in order to view the content.
-I don't really know why, but I decided to give it another try and I was quite surprised by the amount of interesting content that I found there.
-It takes a while (such as with TikTok) but after a few like and a few saves you start to see things that really suit your interests.
-One day, after scrolling for a while, I found a few images that reminded me of an old project I have published on GitHub only and that I am not completely satisfied with (this is why it is not on my Instagram profile): [Minimalistic Maps](https://github.com/lorossi/minimalistic-maps).
+Recently I picked up interest again for Pinterest, a social media that, back in the day, I straight up refused to use due to its terrible website and its incredibly bad practice of forcing you to create an account and install an application *(if you are fool enough to use a mobile browser)* before letting you see the content.
+I don't know why, but a couple of months ago I decided to give it another try and I was quite surprised by the amount of interesting content that I found there.
+It takes a while to get a customized home page, but after a few likes and a few saves you start to see things that suit your interests.
 
-In short, the repository contains a script that generates maps of cities using the [OpenStreetMap](https://www.openstreetmap.org/) API and the [PIL](https://pillow.readthedocs.io/en/stable/), by plotting only certain elements of the city (benches, trees, banks, trash cans, etc.).
-It gives a strange representation of cities, and you can really see the difference between countries; it was created because of my curiosity, but I never really used it for anything else.
-Before completely giving up, I started working on an extension of the map generation that could produce "rounded" maps that looked a little bit hand-drawn, but I have never really bothered to finish it.
-I spent a lot of time on it but I was never really satisfied with the outcome, so I abandoned it (as now, there's not even a README file), even forgetting that I had it on public.
+Of course, it did not take long to see posts about graphic design, Ferrari cars *(mostly F40s, weirdly enough)*, and generative art.
 
-However, I started thinking about it again, and a few ideas came quickly to my mind.
+One day, after scrolling for a while, I found a few images that reminded me of an old project I have published on GitHub only and that I am not completely satisfied with *(this is why it is not on my Instagram profile)*: [Minimalistic Maps](https://github.com/lorossi/minimalistic-maps).
 
-So, I decided to give it another try and this time I am quite happy not only with the result but also with the code:
-first of all, I dropped completely the idea of using a library to interface with the OpenStreetMap API, as I decided to use the [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API) and the [Nominatim API](https://wiki.openstreetmap.org/wiki/Nominatim) directly.
-I can't deny that the OSM query language is way messy and beyond my understanding. At first, I reached out to my good friend ChatGPT to get some help with it, but with not much success; I found the even better StackOverflow and I was able to leech some knowledge from a brave user that needed the same help as me.
+In short, the repository contains a script that generates maps of cities using the [OpenStreetMap](https://www.openstreetmap.org/) API and the [PIL](https://pillow.readthedocs.io/en/stable/), by plotting only certain elements of the city *(such as benches, trees, banks, trash cans, etc...)*.
+Cities get represented in weird ways, and you can see the difference between countries.
 
-The maps are then drawn on an image, according to a set of rules that define their styles, including the colour of the buildings and the font used to write the name of the city;
-I then made a few different styles, taking inspiration from some art styles and paintings.
-Which one looks better, is up to you to decide.
+My curiosity fuelled this project, but it never really saw the light of day, as I was never really satisfied with the outcome.
 
-I tried to implement a map-colouring algorithm leveraging the [Four colour theorem](https://en.wikipedia.org/wiki/Four_color_theorem), but I quickly found out how hard finding an exact solution for this is;
-I then promptly implemented a simple greedy algorithm that works quite well.
-A few buildings (less than 0.01% of the total) might have the same colour as a neighbour, but I think that this is not a big deal.
+Before completely giving up, I started working on an extension of the map generation that could produce *"rounded"* maps that looked a little bit hand-drawn, but I have never really bothered to finish it, despite having put quite the effort into it:
+I was never really satisfied with the outcome, so I abandoned it *(as now, there's not even a README file)*, even forgetting that I had it on my computer.
 
-I would love to try this out on a pen plotter, but I don't have one (yet).
-Building one might really be a good idea for a future project.
+However, thanks to the aforementioned social platform, I found a few images that reminded me of that project and I decided to give it another try:
+this time I was able to get a few good results, and I am quite happy with them.
+
+The buildings, streets, parks and all the other features of the maps are sourced directly from [Open Street Maps](https://www.openstreetmap.org/), which is quite accurate and detailed (to my surprise).
+I have never put much trust into OSM, since the competing Google Maps has always worked well enough for me, but I was quite surprised by the number of details that OSM has:
+all the buildings are correctly mapped and categorized, the interest points are all there, and the streets are all correctly placed.
+
+At first, I tried interfacing with the OpenStreetMap API using a library, but I quickly found out that it was not really what I was looking for;
+I quickly dropped it, as I decided to use the [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API) and the [Nominatim API](https://wiki.openstreetmap.org/wiki/Nominatim) directly.
+
+I can't deny that the OSM query language is way messy and beyond my understanding. At first, I reached out to my good old friend *ChatGPT* to get some help with it, but with not much success; I found the even better *StackOverflow* and I was able to leech some knowledge from a brave user who needed the same help as me.
+
+The only thing that I don't like about the OSM queries is how the data is returned: interest points are returned as nodes, while streets, parks, and waterways are returned as relations:
+this makes complete sense, as you cannot represent the latter features as single points.
+Buildings, however, are sometimes returned as nodes and sometimes as relations, which not only makes the code a little bit more complicated than it should be but still confuses me.
+Furthermore, buildings have `inner` and `outer` polygons, and I still don't understand what they are for despite having read the documentation.
+
+However, getting all the nodes is as simple as making one *(or two, for buildings)* queries, and then extracting the data from the JSON response.
+
+Each map is then drawn on an image, according to a set of rules that define their styles;
+Each style defines the colours, the fonts, and the way the map is drawn.
+The project includes a few different styles: some of them are sampled from planets (*Moon* and *Mars*), others from paintings (*Mondrian* and *Starry Night*), while to make others I picked a few colours that looked good together and I tried to make something out of them (such as *Modern* and *Pastel*).
+The fonts have all been picked from websites, as they are demo versions or free to use for personal projects.
+
+I tried to implement a map-colouring algorithm leveraging the [Four colour theorem](https://en.wikipedia.org/wiki/Four_color_theorem) to prevent neighbouring buildings from sharing the same colours, but I quickly found out how hard finding an exact solution for this is:
+I found a [paper by Robertson, Sanders, Seymour and Thomas](https://thomas.math.gatech.edu/PAP/fcstoc.pdf) describing an algorithm able to solve the problem in quadratic time.
+
+Well, it turns out that this is kind of a complex problem and implementing it would have been more time-consuming than I thought, so I chose to drop it and implement a greedy algorithm instead.
+
+The greedy algorithm works as follows:
+
+- Find all the neighbours of each building
+- Sort the buildings by the number of neighbours
+- For each building, assign the first available colour
+- If no colour is available, fill the building with a random colour
+
+The algorithm is repeated multiple times *(about 50)*, and only the best result is used.
+A few buildings *(less than 0.01% of the total)* might have the same colour as a neighbour, but I think that this is not a big deal: the buildings are small enough to not be noticed.
+
+After selecting colours for buildings and features, the map is finally drawn on an image: all these steps are taken care of by the `city.py` script.
+
+A CLI version of the script is also available, and it can be used to generate a single map from the command line: this is useful for... well... I don't know, but it felt weird to not make it since every aspect of the code was already there, ready to be parameterized (no hardcoded values have been used!).
+It is found in the `city-cli.py` script.
+
+Finally, the last script, (`compose.py`) can be used to compose multiple maps into a single image, which can be used as a poster or as a wallpaper.
+
+I grouped the maps into 3 different categories:
+
+- 9 biggest capitals of the EU
+- 4 capitals of the Mediterranean area
+- the 4 historic capitals of Italy *(Milan is a little bit cheeky, but after all, it was the capital of the Cisalpine Republic)*.
+
+I didn't upload all the output (it's repetitive and, most of all, ~3GB of images), but you can find a subset of the output in the [output](/output/) folder and the following parts of the README.
+
+## Final thoughts
+
+- Using the Overpass API is better than using a library, even if I had to create data structures to represent the data and it is not flexible at all
+- I would like to try to implement the map-colouring algorithm described in the paper, but I don't think that I will ever do it (unless in another project).
+- An easier way of implementing the aforementioned algorithm would probably be with backtracking, but once again it's not worth the effort nor the time.
+- Another thing that I would like is to try to print the maps (maybe the black and white ones) on a pen plotter, but sadly I don't own one of those.
+- I am really satisfied with the result and could extend this to make square or rectangle-shaped maps to print as posters.
 
 ## Output
 
@@ -43,7 +94,7 @@ The repo contains 3 different Python scripts:
 
 ### Usage of `city.py`
 
-In order to start using the script, the following steps are required:
+To start using the script, the following steps are required:
 
 - Create a virtual environment
 
@@ -109,5 +160,5 @@ Fonts used:
 - Pastel by Vladimir Creative Fabrica
 - Tropical Asian by Konstantine Studio
 - Raleway by Matt McInerney
-- Roquen by Letterhend Studio
+- Roquen by Letterhead Studio
 - Vincent by Macromedia
