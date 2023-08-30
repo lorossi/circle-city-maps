@@ -1,4 +1,4 @@
-# City Maps
+# Circle City Maps
 
 <p align="center">
   <img width="400" height="400" src="/output/Milan-Bauhaus.png">
@@ -65,7 +65,7 @@ The greedy algorithm works as follows:
 The algorithm is repeated multiple times *(about 50)*, and only the best result is used.
 A few buildings *(less than 0.01% of the total)* might have the same colour as a neighbour, but I think that this is not a big deal: the buildings are small enough to not be noticed.
 
-After selecting colours for buildings and features, the map is finally drawn on an image: all these steps are taken care of by the `city.py` script.
+After selecting colours for buildings and features, the map is finally drawn on an image: all these steps are taken care of by the `circle-city.py` script.
 
 A CLI version of the script is also available, and it can be used to generate a single map from the command line: this is useful for... well... I don't know, but it felt weird to not make it since every aspect of the code was already there, ready to be parameterized (no hardcoded values have been used!).
 It is found in the `city-cli.py` script.
@@ -121,11 +121,11 @@ Make sure to also check my [Instagram profile](https://www.instagram.com/lorossi
 
 The repo contains 3 different Python scripts:
 
-- `city.py`, generating a fixed set of cities
+- `circle-city.py`, generating a fixed set of cities
 - `city-cli.py`, generating a city based on a command line argument
 - `compose.py`, generating a collage of cities and saving it as a single image
 
-### Usage of `city.py`
+### Usage of `circle-city.py`
 
 To start using the script, the following steps are required:
 
@@ -148,7 +148,7 @@ pip install -r requirements.txt
 ```
 
 - Run the script
-  - `city.py`: `python3 city.py`
+  - `circle-city.py`: `python3 circle-city.py`
   - `city-cli.py`: `python3 city-cli.py`
 
 The first script will generate a fixed set of cities (as now, the capitals of the EU and London), while the second one will generate a city based on a command line argument.
@@ -159,19 +159,19 @@ For more information about the command line arguments, please refer to the next 
 - Generate a map of the city of London, using the `Modern` style and saving it as `london.png` of size 1000x1000 pixels
 
 ```bash
-python3 city.py --city London --style Modern --output london.png --width 1000 --height 1000
+python3 circle-city.py --city London --style Modern --output london.png --width 1000 --height 1000
 ```
 
 - List all the available styles
 
 ```bash
-python3 city.py --list-styles
+python3 circle-city.py --list-styles
 ```
 
 - View all command line arguments
 
 ```bash
-python3 city.py --help
+python3 circle-city.py --help
 ```
 
 ## License

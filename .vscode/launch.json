@@ -13,10 +13,10 @@
       "justMyCode": true
     },
     {
-      "name": "Python: city.py",
+      "name": "Python: circle-city.py",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/city.py",
+      "program": "${workspaceFolder}/circle-city.py",
       "console": "integratedTerminal",
       "justMyCode": true,
       "cwd": "${workspaceFolder}",
