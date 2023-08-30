@@ -1,5 +1,15 @@
 # City Maps
 
+<p align="center">
+  <img width="400" height="400" src="/output/Milan-Bauhaus.png">
+  <img width="400" height="400" src="/output/Turin-Black_and_White.png">
+</p>
+
+<p align="center">
+  <img width="400" height="400" src="/output/Forence-Pitch_Black.png">
+  <img width="400" height="400" src="/output/Rome-Jungle.png">
+</p>
+
 Recently I picked up interest again for Pinterest, a social media that, back in the day, I straight up refused to use due to its terrible website and its incredibly bad practice of forcing you to create an account and install an application *(if you are fool enough to use a mobile browser)* before letting you see the content.
 I don't know why, but a couple of months ago I decided to give it another try and I was quite surprised by the amount of interesting content that I found there.
 It takes a while to get a customized home page, but after a few likes and a few saves you start to see things that suit your interests.
@@ -82,7 +92,30 @@ I didn't upload all the output (it's repetitive and, most of all, ~3GB of images
 
 A few outputs that I like:
 
-Make sure to also check my [Instagram profile](https://www.instagram.com/lorossi97/) and navigate the repo (the folders [maps](/maps/) and [composed](/composed/) for more images.
+<p align="center">
+  <img src="/output/capitals_composed_black_and_white.png">
+</p>
+<p align="center">
+  <img src="/output/capitals_composed_cyberpunk.png">
+</p>
+<p align="center">
+  <img src="/output/capitals_composed_modern.png">
+</p>
+<p align="center">
+  <img src="/output/capitals_composed_mondrian.png">
+</p>
+
+<p align="center">
+  <img src="/output/italian-capitals-mars.png">
+  <img src="/output/italian-capitals-moon.png">
+</p>
+
+<p align="center">
+  <img src="/output/mediterranean_sea.png">
+  <img src="/output/mediterranean_sunset.png">
+</p>
+
+Make sure to also check my [Instagram profile](https://www.instagram.com/lorossi97/).
 
 ## Code
 
@@ -147,18 +180,18 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 Fonts used:
 
-- Asher Punk by Allouse.Studio
-- Astida Scripto by FreshTypeINK
-- Bauhaus by ALLTYPE
-- Celtic Sea by Art Designs by Sue
-- DeStijl by Garrett Boge
-- HotSnow by Alit Design
-- Kitschy Retro by Creative Fabrica
-- Love Nature by Joe Dawson
-- Moon by Jack Harvatt
-- NUSAR by Free Fonts
-- Pastel by Vladimir Creative Fabrica
-- Tropical Asian by Konstantine Studio
-- Raleway by Matt McInerney
-- Roquen by Letterhead Studio
-- Vincent by Macromedia
+- *Asher Punk* by *Allouse.Studio*
+- *Astida Scripto* by *FreshTypeINK*
+- *Bauhaus* by *ALLTYPE*
+- *Celtic Sea by Art Designs* by *Sue*
+- *DeStijl* by *Garrett Boge*
+- *HotSnow* by *Alit Design*
+- *Kitschy Retro* by *Creative Fabrica*
+- *Love Nature* by *Joe Dawson*
+- *Moon* by *Jack Harvatt*
+- *NUSAR* by *Free Fonts*
+- *Pastel* by *Vladimir Creative Fabrica*
+- *Tropical Asian* by *Konstantine Studio*
+- *Raleway* by *Matt McInerney*
+- *Roquen* by *Letterhead Studio*
+- *Vincent* by *Macromedia*
