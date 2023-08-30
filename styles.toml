@@ -100,7 +100,7 @@ font_family = "MoonBold.otf"
 
 [[Styles]]
 name = "Mars"
-background_color = "#C8BDB8"
+background_color = "#EBAB8F"
 text_color = "#0D0D0D"
 roads_color = "#191715"
 parks_color = "#2a2f1e"
