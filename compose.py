@@ -7,7 +7,7 @@ from modules.composer import Composer
 def main():
     """Script entry point."""
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format=(
             "%(asctime)s - %(levelname)s - %(module)s (%(lineno)d, in %(funcName)s) "
             "- %(message)s"
@@ -31,9 +31,14 @@ def main():
     c = Composer()
 
     for style in c.styles:
-        c.compose(style=style, cities=composition_1)
-        c.compose(style=style, cities=composition_2, sort_cities=False)
-        c.compose(style=style, cities=composition_3)
+        c.composeCities(style=style, cities=composition_1, frame_width=0)
+        c.composeCities(
+            style=style,
+            cities=composition_2,
+            frame_width=0,
+            sort_cities=False,
+        )
+        c.composeCities(style=style, cities=composition_3, frame_width=0)
 
 
 if __name__ == "__main__":

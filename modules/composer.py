@@ -44,19 +44,13 @@ class Composer:
 
         return maps
 
-    def _shadeColor(self, source_color: str, shades: int = 4) -> str:
-        """Shade a color."""
-        logging.debug(f"Shading color {source_color}")
-        r, g, b = [
-            int(c, 16)
-            for c in [source_color[1:3], source_color[3:5], source_color[5:7]]
-        ]
-        logging.debug(f"RGB: {r}, {g}, {b}")
-        r, g, b = (int(c / shades) for c in [r, g, b])
-        logging.debug(f"Shaded RGB: {r}, {g}, {b}")
-        return f"#{r:02x}{g:02x}{b:02x}"
+    def _shadeRGB(
+        self, color: tuple[int, int, int], amount: int = 2
+    ) -> tuple[int, int, int]:
+        """Shade an RGB color."""
+        return tuple(c // amount for c in color)
 
-    def compose(
+    def composeCities(
         self,
         style: str,
         cities: list[str],
@@ -103,7 +97,6 @@ class Composer:
 
         background_color = maps[0].getpixel((0, 0))
         logging.debug(f"Background color: {background_color}")
-        frame_color = self._shadeColor(background_color, shades=2)
 
         out_size = max(m.width for m in maps)
 
@@ -124,20 +117,23 @@ class Composer:
 
             logging.debug(f"Composing map {i} at ({x}, {y})")
             out_image.paste(m, (x * out_size + dx, y * out_size + dy))
-            # draw 2px frame
-            out_draw.rectangle(
-                [
-                    (
-                        x * out_size + dx - frame_width // 2,
-                        y * out_size + dy - frame_width // 2,
-                    ),
-                    (
-                        x * out_size + dx + m.width + frame_width // 2,
-                        y * out_size + dy + m.height + frame_width // 2,
-                    ),
-                ],
-                outline=frame_color,
-            )
+            # draw frame
+            if frame_width > 0:
+                frame_color = self._shadeRGB(background_color, amount=2)
+                logging.debug(f"Frame color: {frame_color}")
+                out_draw.rectangle(
+                    [
+                        (
+                            x * out_size + dx - frame_width // 2,
+                            y * out_size + dy - frame_width // 2,
+                        ),
+                        (
+                            x * out_size + dx + m.width + frame_width // 2,
+                            y * out_size + dy + m.height + frame_width // 2,
+                        ),
+                    ],
+                    outline=frame_color,
+                )
 
         if not os.path.exists(self._dest_folder):
             os.makedirs(self._dest_folder)
