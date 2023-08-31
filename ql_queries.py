@@ -84,32 +84,42 @@ def combine_polygons(
     return None
 
 
+def polygon_from_ways(ways: list[Way]) -> list[list[Node]]:
+    logging.debug("Extracting polygon from ways")
+    new_polygon = []
+    polygons = []
+
+    for way in ways:
+        if not new_polygon:
+            new_polygon.extend(way.nodes)
+            continue
+
+        combined = combine_polygons(new_polygon, way.nodes)
+        if combined:
+            new_polygon = combined
+        else:
+            polygons.append(new_polygon)
+            new_polygon = way.nodes
+
+    if new_polygon:
+        polygons.append(new_polygon)
+
+    return polygons
+
+
 def extract_polygons(
     relations: dict[int, Relation],
 ) -> tuple[list[list[Node]], list[list[Node]]]:
     logging.debug("Extracting polygons")
     # discard outer
-    polygons = []
+    outer = []
+    inner = []
 
     for relation in relations.values():
-        new_polygon = []
+        outer.extend(polygon_from_ways(relation.outer_ways))
+        inner.extend(polygon_from_ways(relation.inner_ways))
 
-        for way in relation.outer_ways:
-            if not new_polygon:
-                new_polygon.extend(way.nodes)
-                continue
-
-            combined = combine_polygons(new_polygon, way.nodes)
-            if combined:
-                new_polygon = combined
-            else:
-                polygons.append(new_polygon)
-                new_polygon = way.nodes
-
-        if new_polygon:
-            polygons.append(new_polygon)
-
-    return polygons, []
+    return outer, inner
 
 
 def format_query(query: str) -> str:
@@ -206,15 +216,13 @@ def main():
     img = Image.new("RGB", (width, height), color="white")
     draw = ImageDraw.Draw(img)
 
-    # for r in relations.values():
-    #     scaled = []
-    #     for way in r.inner_ways:
-    #         scaled.extend(normalize_coordinates(way.nodes, bbox, width, height))
-    #     draw.line(scaled, fill=random_color())
-
     for polygon in outer:
         scaled = normalize_coordinates(polygon, bbox, width, height)
         draw.polygon(scaled, fill="blue")
+
+    for polygon in inner:
+        scaled = normalize_coordinates(polygon, bbox, width, height)
+        draw.polygon(scaled, fill="white")
 
     img = ImageOps.flip(img)
     img.save("test.png")
