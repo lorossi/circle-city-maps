@@ -5,6 +5,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: test QL",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/ql_queries.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}",
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",
@@ -32,7 +41,9 @@
         "-o",
         "test",
         "-r",
-        "1000"
+        "1000",
+        "--random-fill",
+        "--debug"
       ]
     },
     {
