@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 
+from enum import Enum
 from modules.api_interface import ApiInterface
 from modules.data import Data
 
@@ -21,6 +22,54 @@ class Node(Data):
     def __hash__(self) -> int:
         """Hash of the node."""
         return self.node_id
+
+
+class Role(Enum):
+    """Enum representing the possible roles of a way in a relation."""
+
+    INNER = "inner"
+    OUTER = "outer"
+
+
+class Way(Data):
+    """Class representing a way returned by Overpass."""
+
+    nodes: list[int]
+    way_id: int
+    role: Role
+
+    def __eq__(self, other: Way) -> bool:
+        """Twp nodes are equal if they have the same latitude and longitude."""
+        return self.way_id == other.way_id
+
+    def __hash__(self) -> int:
+        """Hash of the node."""
+        return self.way_id
+
+
+class Relation(Data):
+    """Class representing a relation returned by Overpass."""
+
+    ways: list[Way]
+    relation_id: int
+
+    @property
+    def outer_ways(self) -> list[Way]:
+        """Get the outer ways of the relation."""
+        return [way for way in self.ways if way.role == Role.OUTER]
+
+    @property
+    def inner_ways(self) -> list[Way]:
+        """Get the inner ways of the relation."""
+        return [way for way in self.ways if way.role == Role.INNER]
+
+    def __eq__(self, other: Relation) -> bool:
+        """Twp nodes are equal if they have the same latitude and longitude."""
+        return self.relation_id == other.relation_id
+
+    def __hash__(self) -> int:
+        """Hash of the node."""
+        return self.relation_id
 
 
 class OverpassElement(Data):
