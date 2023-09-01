@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from modules.data import Data
 from modules.nominatim import NominatimCity
 from modules.osm import OSM
-from modules.overpass import Building, Node, Park, Road, Water
+from modules.overpass import Building, Node, OverpassElement, Park, Road, Water
 from modules.style import Style, StyleFactory
 
 
@@ -50,7 +50,7 @@ class MapBuilding(Data):
         # if the buildings share at least two nodes, they border
         shared_nodes = 0
         this_nodes = {node.node_id for node in self.nodes}
-        other_nodes = {node.node_id for node in other.nodes}
+        other_nodes = {node.node_id for node in other.outer_nodes}
         for node in this_nodes:
             if node in other_nodes:
                 shared_nodes += 1
@@ -213,7 +213,7 @@ class CityMap:
 
         self._buildings = [
             MapBuilding(
-                nodes=building.nodes,
+                nodes=building.outer_nodes,
                 inner_nodes=building.inner_nodes,
                 boundingbox=building.boundingbox,
                 center=building.center,
@@ -253,9 +253,9 @@ class CityMap:
 
         loaded_nodes = (
             sum([len(building.nodes) for building in self._buildings])
-            + sum([len(road.nodes) for road in self._roads])
-            + sum([len(park.nodes) for park in self._parks])
-            + sum([len(water.nodes) for water in self._water])
+            + sum([len(road.outer_nodes) for road in self._roads])
+            + sum([len(park.outer_nodes) for park in self._parks])
+            + sum([len(water.outer_nodes) for water in self._water])
         )
         logging.info(f"Loaded {loaded_nodes} nodes")
         return loaded_nodes
@@ -338,170 +338,139 @@ class CityMap:
         )
         return (datetime.now() - started).total_seconds()
 
-    def _drawBuildings(
+    def _drawElements(
         self,
+        element: list[OverpassElement],
         width: int,
         height: int,
+        color: tuple[int, int, int, int],
+        line: bool = False,
     ) -> Image.Image:
-        """Draw the buildings on an image.
+        logging.debug("Drawing feature")
+        img = Image.new(
+            "RGBA",
+            (width, height),
+            color=(0, 0, 0, 0),
+        )
+        img_draw = ImageDraw.Draw(img)
 
-        Args:
-            width (int): width of the image.
-            height (int): height of the image.
-            style (Style): style to use.
-
-        Returns:
-            Image.Image
-        """
-        buildings_img = Image.new("RGBA", (width, height))
-        buildings_draw = ImageDraw.Draw(buildings_img)
-
-        logging.info("Drawing buildings")
-
-        logging.debug("Drawing outer buildings")
-        for building in self._buildings:
-            normalized_nodes = self._normalizeCoordinate(building.nodes, width, height)
+        logging.debug("Drawing outer polygons")
+        for e in element:
+            normalized_nodes = self._normalizeCoordinate(
+                nodes=e.outer_nodes,
+                width=width,
+                height=height,
+            )
 
             if len(normalized_nodes) < 3:
                 logging.debug(
-                    f"Building {building} has outer way with less than 3 nodes. "
-                    "Skipping it."
+                    f"Element {e.element_id} has less than 3 nodes, "
+                    "so it will be skipped"
                 )
+                continue
 
-            if building.color_id is None:
-                logging.debug("Building has no color. filling it with random color")
-                random_id = random.randint(
-                    0,
-                    len(self._style.buildings_fill) - 1,
+            if line:
+                img_draw.line(
+                    normalized_nodes,
+                    fill=color,
+                    width=2,
                 )
-                fill_color = self._style.buildings_fill[random_id]
-                outline_color = self._style.buildings_outline[random_id]
             else:
-                fill_color = self._style.buildings_fill[building.color_id]
-                outline_color = self._style.buildings_outline[building.outline_color_id]
+                img_draw.polygon(
+                    normalized_nodes,
+                    fill=color,
+                )
 
-            buildings_draw.polygon(
-                xy=normalized_nodes,
-                fill=fill_color,
-                outline=outline_color,
-            )
-
-        logging.debug("Drawing inner buildings")
-        for building in self._buildings:
-            for nodes in building.inner_nodes:
-                normalized_nodes = self._normalizeCoordinate(nodes, width, height)
+        logging.debug("Drawing inner polygons")
+        for e in element:
+            for nodes in e.inner_nodes:
+                normalized_nodes = self._normalizeCoordinate(
+                    nodes=nodes,
+                    width=width,
+                    height=height,
+                )
 
                 if len(normalized_nodes) < 3:
                     logging.debug(
-                        f"Building {building} has inner way with less than 3 nodes. "
-                        "Skipping it."
+                        f"Element {e.element_id} has less than 3 inner nodes, "
+                        "so it will be skipped"
                     )
+                    continue
 
-                buildings_draw.polygon(
-                    xy=normalized_nodes,
+                img_draw.polygon(
+                    normalized_nodes,
                     fill=self._style.background_color,
                 )
 
-        return buildings_img
+        return img
 
-    def _drawParks(
+    def _drawBuildings(
         self,
+        buildings: list[MapBuilding],
         width: int,
         height: int,
     ) -> Image.Image:
-        """Draw the parks on an image.
+        logging.debug("Drawing buildings")
+        img = Image.new(
+            "RGBA",
+            (width, height),
+            color=(0, 0, 0, 0),
+        )
+        img_draw = ImageDraw.Draw(img)
 
-        Args:
-            width (int): width of the image.
-            height (int): height of the image.
-
-        Returns:
-            Image.Image: _description_
-        """
-        parks_img = Image.new("RGBA", (width, height))
-        parks_draw = ImageDraw.Draw(parks_img)
-
-        logging.info("Drawing parks")
-
-        for park in self._parks:
-            normalized_nodes = self._normalizeCoordinate(park.nodes, width, height)
+        logging.debug("Drawing buildings outer polygons")
+        for building in buildings:
+            normalized_nodes = self._normalizeCoordinate(
+                nodes=building.nodes,
+                width=width,
+                height=height,
+            )
 
             if len(normalized_nodes) < 3:
-                logging.debug(f"Park {park} has less than 3 nodes. Skipping it.")
+                logging.debug(
+                    f"Building {building} has less than 3 nodes, so it will be skipped"
+                )
                 continue
 
-            parks_draw.polygon(
-                xy=normalized_nodes,
-                fill=self._style.parks_color,
-                outline=self._style.parks_color,
+            if building.color_id is None:
+                logging.debug(
+                    f"Building {building} has no color assigned, so it will be skipped"
+                )
+                index = random.randint(0, self._styleFactory.palette_length - 1)
+                fill = self._style.buildings_fill[index]
+                outline = self._style.buildings_outline[index]
+            else:
+                fill = self._style.buildings_fill[building.color_id]
+                outline = self._style.buildings_outline[building.outline_color_id]
+
+            img_draw.polygon(
+                normalized_nodes,
+                fill=fill,
+                outline=outline,
             )
 
-        return parks_img
+        logging.debug("Drawing buildings inner polygons")
+        for building in buildings:
+            for nodes in building.inner_nodes:
+                normalized_nodes = self._normalizeCoordinate(
+                    nodes=nodes,
+                    width=width,
+                    height=height,
+                )
 
-    def _drawWater(
-        self,
-        width: int,
-        height: int,
-    ) -> Image.Image:
-        """Draw the water on an image.
+                if len(normalized_nodes) < 3:
+                    logging.debug(
+                        f"Building {building} has less than 3 inner nodes, "
+                        "so it will be skipped"
+                    )
+                    continue
 
-        Args:
-            width (int): width of the image.
-            height (int): height of the image.
+                img_draw.polygon(
+                    normalized_nodes,
+                    fill=self._style.background_color,
+                )
 
-        Returns:
-            Image.Image: _description_
-        """
-        water_img = Image.new("RGBA", (width, height))
-        water_draw = ImageDraw.Draw(water_img)
-
-        logging.info("Drawing water")
-
-        for water in self._water:
-            normalized_nodes = self._normalizeCoordinate(water.nodes, width, height)
-
-            if len(normalized_nodes) < 3:
-                logging.debug(f"Water {water} has less than 3 nodes. Skipping it.")
-                continue
-
-            water_draw.polygon(
-                xy=normalized_nodes,
-                fill=self._style.water_color,
-                outline=self._style.water_color,
-            )
-
-        return water_img
-
-    def _drawRoads(
-        self,
-        width: int,
-        height: int,
-    ) -> Image.Image:
-        """Draw the roads on an image.
-
-        Args:
-            width (int): width of the image.
-            height (int): height of the image.
-            style (Style): style to use.
-
-        Returns:
-            Image.Image
-        """
-        roads_img = Image.new("RGBA", (width, height))
-        roads_draw = ImageDraw.Draw(roads_img)
-
-        logging.info("Drawing roads")
-
-        for road in self._roads:
-            normalized_nodes = self._normalizeCoordinate(road.nodes, width, height)
-
-            roads_draw.line(
-                xy=normalized_nodes,
-                fill=self._style.roads_color,
-                width=2,
-            )
-
-        return roads_img
+        return img
 
     def _createImage(
         self,
@@ -596,18 +565,6 @@ class CityMap:
             mask=mask,
         )
 
-        # scale down the font until it fits nicely in the image
-        # font_size = int((height - new_height) * 0.35)
-        # while True:
-        #     font = self._loadFont(name=self._style.font_family, size=font_size)
-        #     text = self._city_name.upper()
-        #     text_bbox = img_draw.textbbox((0, 0), text, font=font)
-        #     text_height = text_bbox[3] - text_bbox[1]
-
-        #     if text_height <= (height - new_height) * 0.2:
-        #         break
-
-        #     font_size -= 2
         font_size = int((height - new_height) * 0.3)
         font = self._loadFont(name=self._style.font_family, size=font_size)
         text = self._city_name.upper()
@@ -725,30 +682,37 @@ class CityMap:
 
         to_composite = []
 
-        # draw the roads
-        if draw_roads:
-            to_composite.append(
-                self._drawRoads(
-                    width=width,
-                    height=height,
-                )
-            )
-
         # draw the parks
         if draw_parks:
             to_composite.append(
-                self._drawParks(
+                self._drawElements(
+                    element=self._parks,
                     width=width,
                     height=height,
+                    color=self._style.parks_color,
                 )
             )
 
         # draw the water
         if draw_water:
             to_composite.append(
-                self._drawWater(
+                self._drawElements(
+                    element=self._water,
                     width=width,
                     height=height,
+                    color=self._style.water_color,
+                )
+            )
+
+        # draw the roads
+        if draw_roads:
+            to_composite.append(
+                self._drawElements(
+                    element=self._roads,
+                    width=width,
+                    height=height,
+                    color=self._style.roads_color,
+                    line=True,
                 )
             )
 
@@ -756,6 +720,7 @@ class CityMap:
         if draw_buildings:
             to_composite.append(
                 self._drawBuildings(
+                    buildings=self._buildings,
                     width=width,
                     height=height,
                 )

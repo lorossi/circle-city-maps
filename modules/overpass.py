@@ -89,22 +89,23 @@ class Relation(Data):
 class OverpassElement(Data):
     """Class representing an element returned by Overpass."""
 
-    nodes: list[Node]
+    outer_nodes: list[Node]
     inner_nodes: list[list[Node]]
     center: tuple[float, float]
     boundingbox: tuple[float, float, float, float]
+    element_id: int
 
     def __post__init__(self):
         """Post-initialisation hook."""
-        if not self.nodes:
+        if not self.outer_nodes:
             raise ValueError(f"OverpassElement {self.__class__.__name__} has no nodes")
 
         if not self.boundingbox:
             self.boundingbox = (
-                min([n.lat for n in self.nodes]),
-                min([n.lon for n in self.nodes]),
-                max([n.lat for n in self.nodes]),
-                max([n.lon for n in self.nodes]),
+                min([n.lat for n in self.outer_nodes]),
+                min([n.lon for n in self.outer_nodes]),
+                max([n.lat for n in self.outer_nodes]),
+                max([n.lon for n in self.outer_nodes]),
             )
 
         if not self.center:
@@ -309,7 +310,13 @@ class Overpass(ApiInterface):
         # create the features from the ways
         features = []
         for way in ways.values():
-            features.append(feature(nodes=way.nodes, boundingbox=way.boundingbox))
+            features.append(
+                feature(
+                    outer_nodes=way.nodes,
+                    boundingbox=way.boundingbox,
+                    element_id=way.way_id,
+                )
+            )
 
         logging.debug(f"Extracted {len(features)} {feature.__name__}")
 
@@ -345,8 +352,9 @@ class Overpass(ApiInterface):
 
             features.append(
                 feature(
-                    nodes=outer[0],
+                    outer_nodes=outer[0],
                     inner_nodes=inner,
+                    element_id=relation.relation_id,
                 )
             )
 
@@ -460,3 +468,7 @@ class Overpass(ApiInterface):
             feature_name="water",
         )
         return water_ways + water_relations
+
+
+def hello():
+    print("hello world")
