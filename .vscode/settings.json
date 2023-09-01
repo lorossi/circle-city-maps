@@ -16,12 +16,17 @@
     "Konstantine",
     "LANCZOS",
     "Macromedia",
+    "maxlat",
+    "maxlon",
+    "minlat",
+    "minlon",
     "nominatim",
     "NUSAR",
     "Raleway",
     "Roquen",
     "Scripto",
     "Stijl",
+    "textbbox",
     "textlength"
   ],
 }
