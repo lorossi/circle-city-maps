@@ -19,6 +19,7 @@ class MapBuilding(Data):
     """Class representing a building in the map."""
 
     nodes: list[Node]
+    inner_nodes: list[list[Node]]
     center: tuple[float, float]
     boundingbox: tuple[float, float, float, float]
     neighbors: set[MapBuilding]
@@ -213,6 +214,7 @@ class CityMap:
         self._buildings = [
             MapBuilding(
                 nodes=building.nodes,
+                inner_nodes=building.inner_nodes,
                 boundingbox=building.boundingbox,
                 center=building.center,
             )
@@ -356,12 +358,14 @@ class CityMap:
 
         logging.info("Drawing buildings")
 
+        logging.debug("Drawing outer buildings")
         for building in self._buildings:
             normalized_nodes = self._normalizeCoordinate(building.nodes, width, height)
 
             if len(normalized_nodes) < 3:
                 logging.debug(
-                    f"Building {building} has less than 3 nodes. Skipping it."
+                    f"Building {building} has outer way with less than 3 nodes. "
+                    "Skipping it."
                 )
 
             if building.color_id is None:
@@ -381,6 +385,22 @@ class CityMap:
                 fill=fill_color,
                 outline=outline_color,
             )
+
+        logging.debug("Drawing inner buildings")
+        for building in self._buildings:
+            for nodes in building.inner_nodes:
+                normalized_nodes = self._normalizeCoordinate(nodes, width, height)
+
+                if len(normalized_nodes) < 3:
+                    logging.debug(
+                        f"Building {building} has inner way with less than 3 nodes. "
+                        "Skipping it."
+                    )
+
+                buildings_draw.polygon(
+                    xy=normalized_nodes,
+                    fill=self._style.background_color,
+                )
 
         return buildings_img
 
