@@ -89,7 +89,7 @@ class Relation(Data):
 class OverpassElement(Data):
     """Class representing an element returned by Overpass."""
 
-    outer_nodes: list[Node]
+    nodes: list[Node]
     inner_nodes: list[list[Node]]
     center: tuple[float, float]
     boundingbox: tuple[float, float, float, float]
@@ -97,15 +97,15 @@ class OverpassElement(Data):
 
     def __post__init__(self):
         """Post-initialisation hook."""
-        if not self.outer_nodes:
+        if not self.nodes:
             raise ValueError(f"OverpassElement {self.__class__.__name__} has no nodes")
 
         if not self.boundingbox:
             self.boundingbox = (
-                min([n.lat for n in self.outer_nodes]),
-                min([n.lon for n in self.outer_nodes]),
-                max([n.lat for n in self.outer_nodes]),
-                max([n.lon for n in self.outer_nodes]),
+                min([n.lat for n in self.nodes]),
+                min([n.lon for n in self.nodes]),
+                max([n.lat for n in self.nodes]),
+                max([n.lon for n in self.nodes]),
             )
 
         if not self.center:
@@ -235,7 +235,14 @@ class Overpass(ApiInterface):
                     continue
 
                 current_way = ways[way["ref"]]
-                current_way.role = Role(way["role"])
+
+                try:
+                    role = Role(way["role"])
+                except ValueError:
+                    role = Role.OUTLINE
+
+                current_way.role = role
+
                 relation_ways.append(current_way)
 
             relations[relation_id] = Relation(
@@ -312,7 +319,7 @@ class Overpass(ApiInterface):
         for way in ways.values():
             features.append(
                 feature(
-                    outer_nodes=way.nodes,
+                    nodes=way.nodes,
                     boundingbox=way.boundingbox,
                     element_id=way.way_id,
                 )
@@ -350,9 +357,12 @@ class Overpass(ApiInterface):
             outer = self._buildPolygons(relation.outer_ways)
             inner = self._buildPolygons(relation.inner_ways)
 
+            if not outer:
+                continue
+
             features.append(
                 feature(
-                    outer_nodes=outer[0],
+                    nodes=outer[0],
                     inner_nodes=inner,
                     element_id=relation.relation_id,
                 )
