@@ -87,7 +87,7 @@ def main():
         level = logging.DEBUG
         format = (
             "%(asctime)s - %(levelname)s - %(module)s (%(lineno)d, "
-            "in %(funcName)s - %(message)s"
+            "in %(funcName)s) - %(message)s"
         )
     else:
         level = logging.INFO
