@@ -38,29 +38,39 @@ I quickly dropped it, as I decided to use the [Overpass API](https://wiki.openst
 
 I can't deny that the OSM query language is way messy and beyond my understanding. At first, I reached out to my good old friend *ChatGPT* to get some help with it, but with not much success; I found the even better *StackOverflow* and I was able to leech some knowledge from a brave user who needed the same help as me.
 
-The only thing that I don't like about the OSM queries is how the data is returned: interest points are returned as nodes, while streets, parks, and waterways are returned as relations:
-this makes complete sense, as you cannot represent the latter features as single points.
-Buildings, however, are sometimes returned as nodes and sometimes as relations, which not only makes the code a little bit more complicated than it should be but still confuses me.
-Furthermore, buildings have `inner` and `outer` polygons, and I still don't understand what they are for despite having read the documentation.
+The only thing that I don't like about the OSM queries is how the data is returned: interest points are returned as nodes, while streets, parks, and water areas are returned sometimes as ways, sometimes as relations:
+this makes complete sense, as you cannot always represent the latter as single nodes; but why some are ways and some are relations is beyond my understanding.
+My guess is that "ways" are just "building blocks" that can be used to build everything else, from shorelines to roundabouts, and that relations are used to group them together.
+But why return a mixed set of ways and relations? Couldn't they just return everything as relations?
+The relations contain `inner` and `outer` ways, which are used to represent the inner and outer boundaries of the relation itself:
+for examples, buildings with an hollow courtyard are represented as a relation with an outer way and an inner way.
+On the other hand, if a buildings has no hollow sections, it is represented as a single way, and the same goes for parks and water areas.
+Finally, the ways in each relation are not necessarily ordered *(this has been an issue in mapping Budapest, where the river was messy and there was no way of drawing it as a polygon without having to re-organize the ways)*, so I lost quite a bit of time trying to figure out how to draw them correctly.
 
-However, getting all the nodes is as simple as making one *(or two, for buildings)* queries, and then extracting the data from the JSON response.
+To get all the nodes, two different procedures must be used:
 
-Each map is then drawn on an image, according to a set of rules that define their styles;
-Each style defines the colours, the fonts, and the way the map is drawn.
+- one to extract the nodes from the relations
+- one to extract the nodes from the ways
+
+Then they can be merged together and used to draw the map as polygons.
+
+Each feature *(buildings, streets, parks, etc...)* is drawn on a separate layer and then merged together to form the final map.
+
+The color of each feature is defined in by a style, which contains the description of the color for water area, parks, and streets, the palette for the buildings, and the font used to write the name of the city.
 The project includes a few different styles: some of them are sampled from planets (*Moon* and *Mars*), others from paintings (*Mondrian* and *Starry Night*), while to make others I picked a few colours that looked good together and I tried to make something out of them (such as *Modern* and *Pastel*).
-The fonts have all been picked from websites, as they are demo versions or free to use for personal projects.
+The fonts have all been picked from various sources on the internet, as they are demo versions or free to use for personal projects.
 
 I tried to implement a map-colouring algorithm leveraging the [Four colour theorem](https://en.wikipedia.org/wiki/Four_color_theorem) to prevent neighbouring buildings from sharing the same colours, but I quickly found out how hard finding an exact solution for this is:
-I found a [paper by Robertson, Sanders, Seymour and Thomas](https://thomas.math.gatech.edu/PAP/fcstoc.pdf) describing an algorithm able to solve the problem in quadratic time.
+[this paper by Robertson, Sanders, Seymour and Thomas](https://thomas.math.gatech.edu/PAP/fcstoc.pdf) describes an algorithm able to solve the problem in quadratic time.
 
-Well, it turns out that this is kind of a complex problem and implementing it would have been more time-consuming than I thought, so I chose to drop it and implement a greedy algorithm instead.
+Well, **it turns out that this is kind of a complex problem** and implementing it would have been more time-consuming than I thought, so I chose to drop it and implement a greedy algorithm instead.
 
 The greedy algorithm works as follows:
 
-- Find all the neighbours of each building
-- Sort the buildings by the number of neighbours
-- For each building, assign the first available colour
-- If no colour is available, fill the building with a random colour
+1. Find all the neighbours of each building
+2. Sort the buildings by the number of neighbours
+3. For each building, assign a colour that is not used by any of its neighbours
+4. If no colour is available, fill the building with a random colour
 
 The algorithm is repeated multiple times *(about 50)*, and only the best result is used.
 A few buildings *(less than 0.01% of the total)* might have the same colour as a neighbour, but I think that this is not a big deal: the buildings are small enough to not be noticed.
@@ -93,26 +103,32 @@ I didn't upload all the output (it's repetitive and, most of all, ~3GB of images
 A few outputs that I like:
 
 <p align="center">
-  <img src="/output/capitals_composed_black_and_white.png">
+  <img src="/output/Capitals-Black_and_White.png">
 </p>
 <p align="center">
-  <img src="/output/capitals_composed_cyberpunk.png">
+  <img src="/output/Capitals-Cyberpunk.png">
 </p>
 <p align="center">
-  <img src="/output/capitals_composed_modern.png">
+  <img src="/output/Capitals-Modern.png">
 </p>
 <p align="center">
-  <img src="/output/capitals_composed_mondrian.png">
-</p>
-
-<p align="center">
-  <img src="/output/italian-capitals-mars.png">
-  <img src="/output/italian-capitals-moon.png">
+  <img src="/output/Capitals-Mondrian.png">
 </p>
 
 <p align="center">
-  <img src="/output/mediterranean_sea.png">
-  <img src="/output/mediterranean_sunset.png">
+  <img src="/output/Italian-Capitals-Mars.png">
+</p>
+
+<p align="center">
+  <img src="/output/Italian-Capitals-Moon.png">
+</p>
+
+<p align="center">
+  <img src="/output/Mediterranean-Sea.png">
+</p>
+
+<p align="center">
+  <img src="/output/Mediterranean-Sunset.png">
 </p>
 
 Make sure to also check my [Instagram profile](https://www.instagram.com/lorossi97/).
