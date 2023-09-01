@@ -5,7 +5,7 @@ text_color = "#222222"
 roads_color = "#222222"
 parks_color = "#197614"
 water_color = "#20868A"
-buildings_fill = ["#154084", "#9D2719", "#BA6E19", "#D7B418"]
+buildings_fill = [ "#154084", "#9D2719", "#BA6E19", "#D7B418",]
 font_family = "Bauhaus.ttf"
 
 [[Styles]]
@@ -15,27 +15,47 @@ text_color = "#0A0A0A"
 roads_color = "#0A0A0A"
 parks_color = "#C5C6C1"
 water_color = "#C5C6C1"
-buildings_fill = ["#343A40", "#495057", "#6C757D", "#ADB5BD"]
+buildings_fill = [ "#343A40", "#495057", "#6C757D", "#ADB5BD",]
 font_family = "Hotsnow.ttf"
 
 [[Styles]]
 name = "Cyberpunk"
 background_color = "#FFFFFF"
 text_color = "#041E25"
-roads_color = "#f72585"
-parks_color = "#168aad"
+roads_color = "#F72585"
+parks_color = "#168AAD"
 water_color = "#4361EE"
-buildings_fill = ["#F72585", "#7209B7", "#3A0CA3", "#4361EE"]
+buildings_fill = [ "#F72585", "#7209B7", "#3A0CA3", "#4361EE",]
 font_family = "Asher.ttf"
+
+[[Styles]]
+name = "Jungle"
+background_color = "#F2E8CF"
+text_color = "#1D3521"
+roads_color = "#BC4749"
+parks_color = "#335D3B"
+water_color = "#6489AA"
+buildings_fill = [ "#A7C957", "#6A994E", "#518048", "#386641",]
+font_family = "LoveNature.ttf"
+
+[[Styles]]
+name = "Mars"
+background_color = "#EBAB8F"
+text_color = "#0D0D0D"
+roads_color = "#191715"
+parks_color = "#191715"
+water_color = "#191715"
+buildings_fill = [ "#403124", "#73503C", "#F29877", "#BF785E",]
+font_family = "NUSAR.ttf"
 
 [[Styles]]
 name = "Modern"
 background_color = "#EDF2F4"
 text_color = "#232537"
 roads_color = "#D90429"
-parks_color = "#146b40"
+parks_color = "#146B40"
 water_color = "#143F6B"
-buildings_fill = ["#27293C", "#292B3F", "#2B2D42", "#5C6378"]
+buildings_fill = [ "#27293C", "#292B3F", "#2B2D42", "#5C6378",]
 font_family = "RalewayRegular.ttf"
 
 [[Styles]]
@@ -45,48 +65,8 @@ text_color = "#424040"
 roads_color = "#424040"
 parks_color = "#F8F6EE"
 water_color = "#F8F6EE"
-buildings_fill = ["#e12b27", "#f07925", "#fec723", "#0b74b6"]
+buildings_fill = [ "#E12B27", "#F07925", "#FEC723", "#0B74B6",]
 font_family = "DeStijlRegular.ttf"
-
-[[Styles]]
-name = "Night"
-background_color = "#1C2958"
-text_color = "#997B66"
-roads_color = "#E8AC65"
-parks_color = "#E8AC65"
-water_color = "#6F8C8A"
-buildings_fill = ["#FFCB69", "#D08C60", "#9B9B7A", "#D9AE94"]
-font_family = "AstidaScripto.otf"
-
-[[Styles]]
-name = "Pastel"
-background_color = "#FDF6EC"
-text_color = "#0A0A0A"
-roads_color = "#9381ff"
-parks_color = "#84dcc6"
-water_color = "#72ddf7"
-buildings_fill = ["#FF70A6", "#FF9770", "#FFD670", "#E9FF70"]
-font_family = "Pastel.otf"
-
-[[Styles]]
-name = "Retro"
-background_color = "#fffae2"
-text_color = "#21221C"
-roads_color = "#21221C"
-parks_color = "#A7BD6A"
-water_color = "#6AABBD"
-buildings_fill = ["#797D62", "#BCA469", "#FFCB70", "#F0B27A"]
-font_family = "KitschyRetro.ttf"
-
-[[Styles]]
-name = "Starry Night"
-background_color = "#1D265A"
-text_color = "#F9F9F9"
-roads_color = "#BBA426"
-parks_color = "#596226"
-water_color = "#364B95"
-buildings_fill = ["#5B5484", "#35436E", "#0E3257", "#427EB3"]
-font_family = "VincentRegular.ttf"
 
 [[Styles]]
 name = "Moon"
@@ -95,28 +75,68 @@ text_color = "#8B8685"
 roads_color = "#6E6B6A"
 parks_color = "#6A6D69"
 water_color = "#696D6D"
-buildings_fill = ["#7E7A79", "#5E5C5A", "#52504F", "#312F2F"]
+buildings_fill = [ "#7E7A79", "#5E5C5A", "#52504F", "#312F2F",]
 font_family = "MoonBold.otf"
 
 [[Styles]]
-name = "Mars"
-background_color = "#EBAB8F"
-text_color = "#0D0D0D"
-roads_color = "#191715"
-parks_color = "#191715"
-water_color = "#191715"
-buildings_fill = ["#403124", "#73503C", "#F29877", "#BF785E"]
-font_family = "NUSAR.ttf"
+name = "Night"
+background_color = "#1C2958"
+text_color = "#997B66"
+roads_color = "#E8AC65"
+parks_color = "#E8AC65"
+water_color = "#6F8C8A"
+buildings_fill = [ "#FFCB69", "#D08C60", "#9B9B7A", "#D9AE94",]
+font_family = "AstidaScripto.otf"
+
+[[Styles]]
+name = "Pastel"
+background_color = "#FDF6EC"
+text_color = "#0A0A0A"
+roads_color = "#9381FF"
+parks_color = "#84DCC6"
+water_color = "#72DDF7"
+buildings_fill = [ "#FF70A6", "#FF9770", "#FFD670", "#E9FF70",]
+font_family = "Pastel.otf"
+
+[[Styles]]
+name = "Pitch Black"
+background_color = "#16181B"
+text_color = "#F8F9FA"
+roads_color = "#62686D"
+parks_color = "#62686D"
+water_color = "#62686D"
+buildings_fill = [ "#6C757D", "#5B636A", "#495057", "#343A40",]
+font_family = "Roquen.otf"
+
+[[Styles]]
+name = "Retro"
+background_color = "#FFFAE2"
+text_color = "#21221C"
+roads_color = "#21221C"
+parks_color = "#A7BD6A"
+water_color = "#6AABBD"
+buildings_fill = [ "#797D62", "#BCA469", "#FFCB70", "#F0B27A",]
+font_family = "KitschyRetro.ttf"
 
 [[Styles]]
 name = "Sea"
 background_color = "#FFC482"
 text_color = "#27355E"
-roads_color = "#b49874"
+roads_color = "#B49874"
 parks_color = "#397354"
 water_color = "#546E8F"
-buildings_fill = ["#2B3A67", "#496A81", "#66999B", "#B3AF8F"]
+buildings_fill = [ "#2B3A67", "#496A81", "#66999B", "#B3AF8F",]
 font_family = "CelticSea.ttf"
+
+[[Styles]]
+name = "Starry Night"
+background_color = "#1D265A"
+text_color = "#F9F9F9"
+roads_color = "#BBA426"
+parks_color = "#596226"
+water_color = "#364B95"
+buildings_fill = [ "#5B5484", "#35436E", "#0E3257", "#427EB3",]
+font_family = "VincentRegular.ttf"
 
 [[Styles]]
 name = "Sunset"
@@ -125,25 +145,6 @@ text_color = "#DDD1A1"
 roads_color = "#EE4F64"
 parks_color = "#379561"
 water_color = "#376895"
-buildings_fill = ["#E09F7D", "#EF5D60", "#EC4067", "#A01A7D"]
+buildings_fill = [ "#E09F7D", "#EF5D60", "#EC4067", "#A01A7D",]
 font_family = "TropicalAsian.ttf"
 
-[[Styles]]
-name = "Jungle"
-background_color = "#F2E8CF"
-text_color = "#1D3521"
-roads_color = "#BC4749"
-parks_color = "#335D3B"
-water_color = "#6489AA"
-buildings_fill = ["#A7C957", "#6A994E", "#518048", "#386641"]
-font_family = "LoveNature.ttf"
-
-[[Styles]]
-name = "Pitch Black"
-background_color = "#16181b"
-text_color = "#f8f9fa"
-roads_color = "#62686d"
-parks_color = "#62686d"
-water_color = "#62686d"
-buildings_fill = ["#6C757D", "#5B636A", "#495057", "#343A40"]
-font_family = "Roquen.otf"
