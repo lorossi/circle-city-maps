@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
 
 import requests
 from PIL import Image, ImageDraw, ImageOps
@@ -52,6 +51,8 @@ def extract_relations(response: dict, ways: dict[int, Way]) -> dict[int, Relatio
         relation_ways = []
         for way in relation["members"]:
             if way["type"] != "way":
+                continue
+            if way["role"] == "part":
                 continue
 
             current_way = ways[way["ref"]]
@@ -137,7 +138,7 @@ def format_query(query: str) -> str:
     return query
 
 
-def extract_bbox(nodes: dict) -> tuple[float, float, float, float]:
+def extract_bbox(nodes: dict[int, list[Node]]) -> tuple[float, float, float, float]:
     logging.debug("Extracting bounding box")
     min_lat = min([node.lat for node in nodes.values()])
     min_lon = min([node.lon for node in nodes.values()])
@@ -162,10 +163,6 @@ def normalize_coordinates(
     return scaled
 
 
-def random_color() -> tuple[int, int, int]:
-    return tuple(random.randint(0, 255) for _ in range(3))
-
-
 def make_request(query: str) -> str:
     clean_query = format_query(query)
     url = f"https://overpass-api.de/api/interpreter?data={clean_query}"
@@ -186,11 +183,11 @@ def main():
     # lat = 41.902782
     # lon = 12.496366
 
-    radius = 2000
+    radius = 500
     # query to extract the polygon containing the river in a city
     query = f"""
         [out:json];
-        relation["natural"="water"](around:{radius},{lat},{lon});
+        relation["building"](around:{radius},{lat},{lon});
         foreach
         {{
             (
