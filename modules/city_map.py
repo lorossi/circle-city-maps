@@ -50,7 +50,7 @@ class MapBuilding(Data):
         # if the buildings share at least two nodes, they border
         shared_nodes = 0
         this_nodes = {node.node_id for node in self.nodes}
-        other_nodes = {node.node_id for node in other.outer_nodes}
+        other_nodes = {node.node_id for node in other.nodes}
         for node in this_nodes:
             if node in other_nodes:
                 shared_nodes += 1
@@ -128,8 +128,8 @@ class CityMap:
 
             if x < 0 or x > 1 or y < 0 or y > 1:
                 logging.debug(
-                    f"Node {node} is outside the bounding box of the buildings, "
-                    "so it will be skipped"
+                    f"Node {node.node_id} is outside the bounding box of the"
+                    "buildings, so it will be skipped"
                 )
                 continue
 
@@ -213,7 +213,7 @@ class CityMap:
 
         self._buildings = [
             MapBuilding(
-                nodes=building.outer_nodes,
+                nodes=building.nodes,
                 inner_nodes=building.inner_nodes,
                 boundingbox=building.boundingbox,
                 center=building.center,
@@ -253,9 +253,9 @@ class CityMap:
 
         loaded_nodes = (
             sum([len(building.nodes) for building in self._buildings])
-            + sum([len(road.outer_nodes) for road in self._roads])
-            + sum([len(park.outer_nodes) for park in self._parks])
-            + sum([len(water.outer_nodes) for water in self._water])
+            + sum([len(road.nodes) for road in self._roads])
+            + sum([len(park.nodes) for park in self._parks])
+            + sum([len(water.nodes) for water in self._water])
         )
         logging.info(f"Loaded {loaded_nodes} nodes")
         return loaded_nodes
@@ -345,6 +345,7 @@ class CityMap:
         height: int,
         color: tuple[int, int, int, int],
         line: bool = False,
+        line_width: int = 5,
     ) -> Image.Image:
         logging.debug("Drawing feature")
         img = Image.new(
@@ -357,7 +358,7 @@ class CityMap:
         logging.debug("Drawing outer polygons")
         for e in element:
             normalized_nodes = self._normalizeCoordinate(
-                nodes=e.outer_nodes,
+                nodes=e.nodes,
                 width=width,
                 height=height,
             )
@@ -370,16 +371,15 @@ class CityMap:
                 continue
 
             if line:
-                img_draw.line(
-                    normalized_nodes,
-                    fill=color,
-                    width=2,
-                )
+                function = img_draw.line
             else:
-                img_draw.polygon(
-                    normalized_nodes,
-                    fill=color,
-                )
+                function = img_draw.polygon
+
+            function(
+                normalized_nodes,
+                fill=color,
+                width=line_width,
+            )
 
         logging.debug("Drawing inner polygons")
         for e in element:
@@ -428,13 +428,15 @@ class CityMap:
 
             if len(normalized_nodes) < 3:
                 logging.debug(
-                    f"Building {building} has less than 3 nodes, so it will be skipped"
+                    f"Building {building.center} has less than 3 nodes, "
+                    "so it will be skipped"
                 )
                 continue
 
             if building.color_id is None:
                 logging.debug(
-                    f"Building {building} has no color assigned, so it will be skipped"
+                    f"Building {building.center} has no color assigned, "
+                    "so it will be skipped"
                 )
                 index = random.randint(0, self._styleFactory.palette_length - 1)
                 fill = self._style.buildings_fill[index]
@@ -680,6 +682,9 @@ class CityMap:
         logging.info(f"Loading style {style}")
         self._style = self._styleFactory.getStyle(style)
 
+        # creating the images to composite
+        logging.info("Creating images to composite")
+
         to_composite = []
 
         # draw the parks
@@ -693,6 +698,8 @@ class CityMap:
                 )
             )
 
+            logging.info("Parks drawn")
+
         # draw the water
         if draw_water:
             to_composite.append(
@@ -703,6 +710,8 @@ class CityMap:
                     color=self._style.water_color,
                 )
             )
+
+            logging.info("Water drawn")
 
         # draw the roads
         if draw_roads:
@@ -716,6 +725,8 @@ class CityMap:
                 )
             )
 
+            logging.info("Roads drawn")
+
         # draw the buildings
         if draw_buildings:
             to_composite.append(
@@ -725,6 +736,8 @@ class CityMap:
                     height=height,
                 )
             )
+
+            logging.info("Buildings drawn")
 
         # create the final image
         final_img = self._createImage(
