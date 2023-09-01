@@ -138,11 +138,9 @@ class Composer:
         if not os.path.exists(self._dest_folder):
             os.makedirs(self._dest_folder)
 
-        out_folder = f"{self._dest_folder}/{style.lower()}"
-        if not os.path.exists(out_folder):
-            os.makedirs(out_folder)
-
-        out_path = f"{out_folder}/{'-'.join(cities).lower()}.png"
+        out_path = (
+            f"{self._dest_folder}/{'-'.join(cities)}-{style.replace(' ', '_')}.png"
+        )
         out_image.save(out_path)
         logging.info(f"Saved composed map to {out_path}")
         return out_path
