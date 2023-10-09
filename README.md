@@ -138,7 +138,7 @@ A few outputs that I like:
   <img src="/output/Mediterranean-Sunset.png">
 </p>
 
-Make sure to also check my [Instagram profile](https://www.instagram.com/lorossi97/).
+Make sure to also check the [Instagram post](https://www.instagram.com/p/CyLk9pliy6V/) and my [Instagram profile](https://www.instagram.com/lorossi97/).
 
 ## Code
 
