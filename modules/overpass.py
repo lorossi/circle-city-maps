@@ -44,6 +44,7 @@ class Way(Data):
     role: Role
 
     def __post__init__(self):
+        """Post-initialisation hook."""
         if not self.boundingbox:
             self.boundingbox = (
                 min([n.lat for n in self.nodes]),
@@ -478,7 +479,3 @@ class Overpass(ApiInterface):
             feature_name="water",
         )
         return water_ways + water_relations
-
-
-def hello():
-    print("hello world")

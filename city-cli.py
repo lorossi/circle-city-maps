@@ -1,3 +1,4 @@
+"""Module for generating city maps from OpenStreetMap data."""
 import argparse
 import logging
 
@@ -5,6 +6,11 @@ from modules.city_map import CityMap
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command line arguments.
+
+    Returns:
+        argparse.Namespace: Parsed arguments.
+    """
     p = argparse.ArgumentParser(description="Generate city maps.")
 
     p.add_argument(
@@ -81,6 +87,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main():
+    """Script entry point."""
     args = parse_args()
 
     if args.debug:
